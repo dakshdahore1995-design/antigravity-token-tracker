@@ -77,9 +77,9 @@ export default function Header({
               </h1>
             )}
             <p className="greeting-subtitle">
-              Antigravity AI Pro Daily Token & Credit Matrix • 
+              Antigravity AI Token Matrix • 
               <span className="live-pulse-badge">
-                <span className="pulse-dot"></span> Real-time Local Telemetry
+                <span className="pulse-dot"></span> ☁️ 100% Cloud Netlify Serverless (24/7 Anywhere)
               </span>
             </p>
           </div>
@@ -88,22 +88,21 @@ export default function Header({
         <div className="header-actions">
           <button 
             className="action-btn action-sync"
-            onClick={onOpenSync}
-            title="Sync from local Antigravity IDE SQLite databases or import custom files"
+            onClick={() => setActiveTab('accounts')}
+            title="Connect your 7 Google accounts via OAuth in the cloud"
           >
-            <RefreshCw size={15} />
-            <span>Sync / Import</span>
+            <Users size={15} />
+            <span>Connect Google Accounts</span>
           </button>
 
-          <a 
-            href="#deploy-section" 
+          <button 
             onClick={onOpenSync}
             className="action-btn action-netlify"
-            title="Deployable directly to Netlify static hosting"
+            title="View Netlify Cloud Serverless Functions status"
           >
             <Globe size={15} />
-            <span>Netlify Ready</span>
-          </a>
+            <span>Netlify Cloud 24/7</span>
+          </button>
         </div>
       </div>
 
