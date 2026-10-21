@@ -15,7 +15,8 @@ import {
   Edit2,
   Check,
   GitBranch,
-  Building2
+  Building2,
+  Share2
 } from 'lucide-react';
 
 export default function Header({
@@ -163,6 +164,15 @@ export default function Header({
             <Users size={16} />
             <span>Pro Accounts Hub</span>
             <span className="tab-pill-green">{accountsList.length || 7} Accounts</span>
+          </button>
+
+          <button
+            className={`nav-tab-btn ${activeTab === 'connector' ? 'active' : ''}`}
+            onClick={() => setActiveTab('connector')}
+          >
+            <Share2 size={16} />
+            <span>OmniRoute Connector</span>
+            <span className="tab-pill-neon">Zero Install</span>
           </button>
 
           <button

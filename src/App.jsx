@@ -10,6 +10,7 @@ import AccountsHub from './components/AccountsHub';
 import ActivityTimeline from './components/ActivityTimeline';
 import GitHubMatrix from './components/GitHubMatrix';
 import SaaSAuthModal from './components/SaaSAuthModal';
+import OmniConnector from './components/OmniConnector';
 import DayModal from './components/DayModal';
 import DataSyncModal from './components/DataSyncModal';
 import ExplainerModal from './components/ExplainerModal';
@@ -193,6 +194,21 @@ export default function App() {
     });
   };
 
+  const handleTokensSimulated = (tokenCount) => {
+    if (!tokenCount) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const copy = { ...prev };
+      if (copy.summary) {
+        copy.summary = {
+          ...copy.summary,
+          total_tokens: (copy.summary.total_tokens || 0) + tokenCount,
+        };
+      }
+      return copy;
+    });
+  };
+
   return (
     <div className="app-container">
       {/* 1. Header Navigation & Filter Bar */}
@@ -265,6 +281,13 @@ export default function App() {
             setSelectedAccount(accId);
             setActiveTab('overview');
           }}
+        />
+      )}
+
+      {activeTab === 'connector' && (
+        <OmniConnector
+          accounts={data?.accounts || []}
+          onTokensSimulated={handleTokensSimulated}
         />
       )}
 
