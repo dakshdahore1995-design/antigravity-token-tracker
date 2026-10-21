@@ -16,10 +16,10 @@ export async function handler(event, context) {
   try {
     const params = event.queryStringParameters || {};
     const accountIndex = params.account_id || '1';
-    const redirectOrigin = params.origin || 'https://antigravity-token-matrix.netlify.app';
+    const redirectOrigin = params.origin || 'https://antigravity-token-tracker.netlify.app';
 
     // Google OAuth Client ID (from Netlify Environment Variables or user configuration)
-    const clientId = process.env.GOOGLE_CLIENT_ID || params.client_id || '9876543210-placeholder.apps.googleusercontent.com';
+    const clientId = process.env.GOOGLE_CLIENT_ID || params.client_id;
     const redirectUri = `${redirectOrigin}/auth/callback`;
 
     // Standard Google OAuth 2.0 scopes for Profile, Email, and Cloud / Gemini API access

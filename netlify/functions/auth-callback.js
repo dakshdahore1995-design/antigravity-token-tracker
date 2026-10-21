@@ -21,7 +21,7 @@ export async function handler(event, context) {
     const code = params.code;
     const clientId = process.env.GOOGLE_CLIENT_ID || params.client_id;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET || params.client_secret;
-    const redirectUri = params.redirect_uri || `${params.origin || 'https://antigravity-token-matrix.netlify.app'}/auth/callback`;
+    const redirectUri = params.redirect_uri || `${params.origin || 'https://antigravity-token-tracker.netlify.app'}/auth/callback`;
 
     if (!code) {
       return {
