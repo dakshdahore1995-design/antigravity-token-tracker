@@ -466,6 +466,27 @@ def extract_all():
 
     print(f"Data successfully synced! Total tokens: {total_tokens_all_time:,}")
     print(f"Saved to {OUTPUT_PUBLIC} and {OUTPUT_SRC}")
+    return data
 
 if __name__ == "__main__":
-    extract_all()
+    import argparse
+    import urllib.request
+
+    parser = argparse.ArgumentParser(description="Antigravity Token Sync")
+    parser.add_argument("--cloud-url", help="Netlify/Render cloud URL to push telemetry (e.g. https://yoursite.netlify.app/api/sync)")
+    args = parser.parse_args()
+
+    synced_data = extract_all()
+    if args.cloud_url:
+        print(f"Pushing telemetry to cloud: {args.cloud_url} ...")
+        try:
+            req = urllib.request.Request(
+                args.cloud_url,
+                data=json.dumps(synced_data).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req) as resp:
+                print("Cloud sync response:", resp.read().decode())
+        except Exception as e:
+            print("Cloud push failed:", e)

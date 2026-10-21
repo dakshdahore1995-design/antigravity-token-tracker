@@ -35,12 +35,12 @@ export default function App() {
     localStorage.setItem('antigravity_user_name', userName);
   }, [userName]);
 
-  // Try to load newest public/antigravity-data.json if available
+  // Try to load newest from Netlify Function /api/usage (cloud 24/7) or /antigravity-data.json
   useEffect(() => {
-    fetch('/antigravity-data.json')
+    fetch('/api/usage')
       .then((res) => {
         if (res.ok) return res.json();
-        throw new Error('Not found');
+        throw new Error('API not available, fallback to static');
       })
       .then((json) => {
         if (json && json.calendar_days) {
@@ -48,7 +48,16 @@ export default function App() {
         }
       })
       .catch(() => {
-        // Fall back to embedded initialData
+        fetch('/antigravity-data.json')
+          .then((res) => (res.ok ? res.json() : null))
+          .then((json) => {
+            if (json && json.calendar_days) {
+              setData(json);
+            }
+          })
+          .catch(() => {
+            // Embedded initialData already active
+          });
       });
   }, []);
 
