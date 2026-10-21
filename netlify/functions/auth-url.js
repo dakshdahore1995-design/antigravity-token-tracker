@@ -20,7 +20,7 @@ export async function handler(event, context) {
 
     // Google OAuth Client ID (from Netlify Environment Variables or user configuration)
     const clientId = process.env.GOOGLE_CLIENT_ID || params.client_id;
-    const redirectUri = `${redirectOrigin}/auth/callback`;
+    const redirectUri = params.redirect_uri || `${redirectOrigin}/auth/callback`;
 
     // Standard Google OAuth 2.0 scopes for Profile, Email, and Cloud / Gemini API access
     const scopes = [
@@ -50,6 +50,7 @@ export async function handler(event, context) {
       body: JSON.stringify({
         url: googleAuthUrl,
         client_id: clientId,
+        redirect_uri: redirectUri,
         account_id: accountIndex,
         is_configured: Boolean(process.env.GOOGLE_CLIENT_ID || params.client_id),
       }),

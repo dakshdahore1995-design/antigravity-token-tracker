@@ -15,7 +15,8 @@ import {
   Settings,
   X,
   Check,
-  Globe
+  Globe,
+  Copy
 } from 'lucide-react';
 
 export default function AccountsHub({ accounts, onSelectAccountFilter }) {
@@ -54,14 +55,25 @@ export default function AccountsHub({ accounts, onSelectAccountFilter }) {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [isFetchingCloud, setIsFetchingCloud] = useState(false);
   const [isStartingOAuth, setIsStartingOAuth] = useState(false);
+  const [copiedUri, setCopiedUri] = useState('');
+  const [forceNetlifyCallback, setForceNetlifyCallback] = useState(false);
   const [cloudSuccessMsg, setCloudSuccessMsg] = useState('');
+
+  // Determine active redirect URI
+  const getActiveRedirectUri = () => {
+    if (forceNetlifyCallback || (!window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1'))) {
+      return 'https://antigravity-token-tracker.netlify.app/auth/callback';
+    }
+    return `${window.location.origin}/auth/callback`;
+  };
 
   // Start live Google OAuth flow
   const handleStartGoogleOAuth = async (accId) => {
     setIsStartingOAuth(true);
     try {
-      const origin = window.location.origin;
-      const res = await fetch(`/api/auth-url?account_id=${accId}&origin=${encodeURIComponent(origin)}`);
+      const targetRedirectUri = getActiveRedirectUri();
+      const origin = targetRedirectUri.replace(/\/auth\/callback$/, '');
+      const res = await fetch(`/api/auth-url?account_id=${accId}&origin=${encodeURIComponent(origin)}&redirect_uri=${encodeURIComponent(targetRedirectUri)}`);
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
@@ -437,6 +449,76 @@ export default function AccountsHub({ accounts, onSelectAccountFilter }) {
                 <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.5rem' }}>
                   Authenticates with Client ID: <code style={{ color: '#00f0ff' }}>719271873086-...</code>
                 </div>
+              </div>
+
+              {/* Redirect URI Helper Alert Box */}
+              <div style={{
+                background: 'rgba(255, 170, 0, 0.08)',
+                border: '1px solid rgba(255, 170, 0, 0.25)',
+                borderRadius: '8px',
+                padding: '0.75rem 0.9rem',
+                marginBottom: '1rem',
+                fontSize: '0.8rem',
+                textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem', color: '#ffb300', fontWeight: 600 }}>
+                  <AlertTriangle size={14} />
+                  <span>Fix "Error 400: redirect_uri_mismatch"</span>
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
+                  Google requires this exact URI saved under <strong>Authorized redirect URIs</strong> in Google Cloud Console:
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: 'rgba(0,0,0,0.4)',
+                  padding: '0.35rem 0.5rem',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <code style={{ color: '#00f0ff', fontSize: '0.75rem', wordBreak: 'break-all', flex: 1 }}>
+                    {getActiveRedirectUri()}
+                  </code>
+                  <button
+                    type="button"
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      padding: '0.2rem 0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.72rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(getActiveRedirectUri());
+                      setCopiedUri(getActiveRedirectUri());
+                      setTimeout(() => setCopiedUri(''), 3000);
+                    }}
+                  >
+                    {copiedUri === getActiveRedirectUri() ? <Check size={12} className="text-neon" /> : <Copy size={12} />}
+                    <span>{copiedUri === getActiveRedirectUri() ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                {window.location.origin.includes('localhost') && (
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <input
+                      type="checkbox"
+                      id="forceNetlifyCb"
+                      checked={forceNetlifyCallback}
+                      onChange={(e) => setForceNetlifyCallback(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor="forceNetlifyCb" style={{ fontSize: '0.72rem', color: '#00f0ff', cursor: 'pointer' }}>
+                      Redirect to Live Netlify site instead of localhost
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
