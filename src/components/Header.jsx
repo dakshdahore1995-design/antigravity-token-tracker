@@ -13,7 +13,9 @@ import {
   Flame,
   CheckCircle2,
   Edit2,
-  Check
+  Check,
+  GitBranch,
+  Building2
 } from 'lucide-react';
 
 export default function Header({
@@ -32,6 +34,7 @@ export default function Header({
   modelsList,
   accountsList,
   onOpenSync,
+  onOpenSaaS,
   totalTokensFormatted,
   activeDaysCount
 }) {
@@ -87,6 +90,16 @@ export default function Header({
 
         <div className="header-actions">
           <button 
+            className="action-btn action-saas"
+            onClick={onOpenSaaS}
+            title="SaaS Subscriptions, Multi-Account Family Workspace & Monetization"
+          >
+            <Building2 size={15} />
+            <span>Family & SaaS</span>
+            <span className="badge badge-neon" style={{ fontSize: '0.65rem' }}>Sellable</span>
+          </button>
+
+          <button 
             className="action-btn action-sync"
             onClick={() => setActiveTab('accounts')}
             title="Connect your 7 Google accounts via OAuth in the cloud"
@@ -115,6 +128,15 @@ export default function Header({
           >
             <Layers size={16} />
             <span>Overview & Heatmap</span>
+          </button>
+
+          <button
+            className={`nav-tab-btn ${activeTab === 'git' ? 'active' : ''}`}
+            onClick={() => setActiveTab('git')}
+          >
+            <GitBranch size={16} />
+            <span>Real GitHub Map</span>
+            <span className="tab-pill">Cloud Git</span>
           </button>
 
           <button

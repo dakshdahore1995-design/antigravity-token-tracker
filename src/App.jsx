@@ -8,6 +8,8 @@ import Isometric3D from './components/Isometric3D';
 import RadarAndDonut from './components/RadarAndDonut';
 import AccountsHub from './components/AccountsHub';
 import ActivityTimeline from './components/ActivityTimeline';
+import GitHubMatrix from './components/GitHubMatrix';
+import SaaSAuthModal from './components/SaaSAuthModal';
 import DayModal from './components/DayModal';
 import DataSyncModal from './components/DataSyncModal';
 import ExplainerModal from './components/ExplainerModal';
@@ -28,6 +30,7 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isExplainerOpen, setIsExplainerOpen] = useState(false);
+  const [isSaaSOpen, setIsSaaSOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Save username to localStorage
@@ -209,6 +212,7 @@ export default function App() {
         modelsList={modelsList}
         accountsList={data?.accounts || []}
         onOpenSync={() => setIsSyncModalOpen(true)}
+        onOpenSaaS={() => setIsSaaSOpen(true)}
         totalTokensFormatted={totalTokensFormatted}
         activeDaysCount={activeDaysCount}
       />
@@ -231,6 +235,10 @@ export default function App() {
           onOpenExplainer={() => setIsExplainerOpen(true)}
           totalTokensFormatted={totalTokensFormatted}
         />
+      )}
+
+      {activeTab === 'git' && (
+        <GitHubMatrix />
       )}
 
       {activeTab === 'isometric' && (
@@ -297,6 +305,12 @@ export default function App() {
       {isExplainerOpen && (
         <ExplainerModal
           onClose={() => setIsExplainerOpen(false)}
+        />
+      )}
+
+      {isSaaSOpen && (
+        <SaaSAuthModal
+          onClose={() => setIsSaaSOpen(false)}
         />
       )}
     </div>

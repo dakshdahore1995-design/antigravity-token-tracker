@@ -1534,6 +1534,413 @@
   gap: 4px;
 }
 
+/* =========================================
+   REAL GITHUB CONTRIBUTIONS MATRIX
+   ========================================= */
+.github-matrix-container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.github-matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.git-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.git-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.git-matrix-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.git-matrix-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.git-search-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+}
+
+.git-search-input {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  outline: none;
+  width: 180px;
+}
+
+.git-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .git-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.git-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.git-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.git-stat-val {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.git-stat-sub {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.git-link-out {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.git-link-out:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   SAAS WORKSPACE & FAMILY ACCOUNT LINKING
+   ========================================= */
+.saas-nav-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.saas-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.saas-nav-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.saas-nav-btn.active {
+  background: var(--bg-card-hover);
+  color: var(--border-neon);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  font-weight: 600;
+}
+
+.saas-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.workspace-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.workspace-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.workspace-name {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.workspace-badge-group {
+  display: flex;
+  gap: 8px;
+}
+
+.delete-member-link {
+  color: var(--accent-rose);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.delete-member-link:hover {
+  text-decoration: underline;
+}
+
+.invite-member-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.invite-inputs-row {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .invite-inputs-row {
+    flex-direction: column;
+  }
+}
+
+/* Pricing Grid */
+.pricing-intro {
+  text-align: center;
+  max-width: 580px;
+  margin: 0 auto 10px auto;
+}
+
+.pricing-intro h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.pricing-intro p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.pricing-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .pricing-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.pricing-card:hover {
+  border-color: var(--border-focus);
+}
+
+.pricing-card-featured {
+  border: 1.5px solid var(--border-neon);
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.15);
+}
+
+.featured-pill {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--border-neon);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.pricing-card-header h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.price-tag {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 6px 0;
+}
+
+.price-tag span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.price-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-height: 34px;
+}
+
+.pricing-features-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0;
+  flex-grow: 1;
+}
+
+.pricing-features-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.plan-select-btn {
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+.plan-select-btn:hover {
+  border-color: var(--border-focus);
+}
+
+.plan-featured-btn {
+  background: var(--border-neon);
+  color: #000;
+  border: none;
+}
+
+.plan-featured-btn:hover {
+  box-shadow: 0 0 15px var(--matrix-l5-glow);
+}
+
+.plan-select-btn.current {
+  background: rgba(0, 255, 136, 0.15);
+  color: var(--border-neon);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+/* Auth box */
+.auth-form-card {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.auth-form-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.auth-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.auth-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.toggle-auth-row {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.toggle-auth-btn {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.toggle-auth-btn:hover {
+  color: var(--border-neon);
+}
+
 .account-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-focus);
