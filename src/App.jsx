@@ -14,6 +14,7 @@ import OmniConnector from './components/OmniConnector';
 import DayModal from './components/DayModal';
 import DataSyncModal from './components/DataSyncModal';
 import ExplainerModal from './components/ExplainerModal';
+import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import './App.css';
 
 export default function App() {
@@ -33,6 +34,98 @@ export default function App() {
   const [isExplainerOpen, setIsExplainerOpen] = useState(false);
   const [isSaaSOpen, setIsSaaSOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [oauthNotice, setOauthNotice] = useState(null);
+
+  // Handle Google OAuth callback on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const stateStr = urlParams.get('state');
+
+    if (code && (window.location.pathname.includes('/auth/callback') || urlParams.has('code'))) {
+      let accountId = '1';
+      try {
+        if (stateStr) {
+          const parsed = JSON.parse(stateStr);
+          if (parsed.account_id) accountId = parsed.account_id;
+        }
+      } catch (e) {
+        console.warn('Could not parse OAuth state:', e);
+      }
+
+      setOauthNotice({
+        type: 'loading',
+        message: `Verifying Google Cloud OAuth authorization for Account #${accountId}...`,
+      });
+
+      fetch('/api/auth-callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          client_id: '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com',
+          origin: window.location.origin,
+          redirect_uri: `${window.location.origin}/auth/callback`,
+        }),
+      })
+        .then((res) => res.json())
+        .then((resp) => {
+          if (resp.status === 'success' && resp.account) {
+            const savedAccounts = JSON.parse(localStorage.getItem('antigravity_cloud_accounts') || '[]');
+            const baseAccounts = savedAccounts.length ? savedAccounts : (data?.accounts || []);
+            const updated = baseAccounts.map((acc) => {
+              if (acc.id.toString() === accountId.toString()) {
+                return {
+                  ...acc,
+                  email: resp.account.email,
+                  name: resp.account.name || `Google Account #${accountId}`,
+                  avatar: resp.account.picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(resp.account.email)}`,
+                  isConnected: true,
+                  status: 'Cloud Verified',
+                  connected_at: resp.account.connected_at || new Date().toISOString(),
+                };
+              }
+              return acc;
+            });
+
+            localStorage.setItem('antigravity_cloud_accounts', JSON.stringify(updated));
+            fetch('/api/accounts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accounts: updated }),
+            }).catch(() => {});
+
+            setActiveTab('accounts');
+            setOauthNotice({
+              type: 'success',
+              message: `Successfully connected ${resp.account.email} to Slot #${accountId} with 24/7 cloud sync!`,
+            });
+            confetti({
+              particleCount: 80,
+              spread: 80,
+              origin: { y: 0.4 },
+              colors: ['#00ff88', '#00f0ff', '#4285F4'],
+            });
+          } else {
+            setOauthNotice({
+              type: 'error',
+              message: `Google OAuth verification failed: ${resp.error || 'Unknown error'}`,
+            });
+          }
+        })
+        .catch((err) => {
+          setOauthNotice({
+            type: 'error',
+            message: `Network error verifying OAuth: ${err.message}`,
+          });
+        })
+        .finally(() => {
+          const cleanUrl = window.location.origin + window.location.pathname.replace(/\/auth\/callback\/?$/, '') + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl || '/');
+          setTimeout(() => setOauthNotice(null), 8000);
+        });
+    }
+  }, []);
 
   // Save username to localStorage
   useEffect(() => {
@@ -232,6 +325,42 @@ export default function App() {
         totalTokensFormatted={totalTokensFormatted}
         activeDaysCount={activeDaysCount}
       />
+
+      {/* OAuth Callback Notice Banner */}
+      {oauthNotice && (
+        <div style={{
+          margin: '0.75rem 1.5rem',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          background: oauthNotice.type === 'success'
+            ? 'rgba(0, 255, 136, 0.12)'
+            : oauthNotice.type === 'error'
+            ? 'rgba(255, 75, 75, 0.15)'
+            : 'rgba(0, 240, 255, 0.12)',
+          border: `1px solid ${
+            oauthNotice.type === 'success'
+              ? 'rgba(0, 255, 136, 0.3)'
+              : oauthNotice.type === 'error'
+              ? 'rgba(255, 75, 75, 0.3)'
+              : 'rgba(0, 240, 255, 0.3)'
+          }`,
+          color: oauthNotice.type === 'success'
+            ? '#00ff88'
+            : oauthNotice.type === 'error'
+            ? '#ff6b6b'
+            : '#00f0ff',
+        }}>
+          {oauthNotice.type === 'loading' && <RefreshCw size={18} className="spin-anim" />}
+          {oauthNotice.type === 'success' && <CheckCircle2 size={18} />}
+          {oauthNotice.type === 'error' && <AlertCircle size={18} />}
+          <span>{oauthNotice.message}</span>
+        </div>
+      )}
 
       {/* 2. Top Stats Banner matching Image 1 layout */}
       <StatsBanner
