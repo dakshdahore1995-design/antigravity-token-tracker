@@ -10,7 +10,8 @@ import AccountsHub from './components/AccountsHub';
 import ActivityTimeline from './components/ActivityTimeline';
 import GitHubMatrix from './components/GitHubMatrix';
 import SaaSAuthModal from './components/SaaSAuthModal';
-import OmniConnector from './components/OmniConnector';
+import AuthScreen from './components/AuthScreen';
+import ErrorDiagnosticModal from './components/ErrorDiagnosticModal';
 import DayModal from './components/DayModal';
 import DataSyncModal from './components/DataSyncModal';
 import ExplainerModal from './components/ExplainerModal';
@@ -18,9 +19,36 @@ import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import './App.css';
 
 export default function App() {
-  const [data, setData] = useState(initialData);
+  // Master User Authentication State
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('antigravity_current_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+
   const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('antigravity_user_name') || 'Daksh';
+    return currentUser?.name || localStorage.getItem('antigravity_user_name') || 'Daksh';
+  });
+
+  // Base Data State
+  const [data, setData] = useState(initialData);
+
+  // Accounts List State (Managed per user, starts fresh with real connections)
+  const [accountsList, setAccountsList] = useState(() => {
+    const userKey = currentUser ? `antigravity_accounts_${currentUser.id}` : 'antigravity_cloud_accounts';
+    const saved = localStorage.getItem(userKey);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
   });
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -35,27 +63,54 @@ export default function App() {
   const [isSaaSOpen, setIsSaaSOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [oauthNotice, setOauthNotice] = useState(null);
+  const [globalDiagnostic, setGlobalDiagnostic] = useState(null);
 
-  // Handle Google OAuth callback on mount
+  // Save currentUser whenever it changes
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('antigravity_current_user', JSON.stringify(currentUser));
+      if (currentUser.name) setUserName(currentUser.name);
+    } else {
+      localStorage.removeItem('antigravity_current_user');
+    }
+  }, [currentUser]);
+
+  // Persist accounts list
+  const handleAccountsChange = (updated) => {
+    setAccountsList(updated);
+    const userKey = currentUser ? `antigravity_accounts_${currentUser.id}` : 'antigravity_cloud_accounts';
+    localStorage.setItem(userKey, JSON.stringify(updated));
+
+    // Also update data.accounts so child components stay synced
+    setData((prev) => ({
+      ...prev,
+      accounts: updated,
+    }));
+  };
+
+  // Handle Google OAuth callback on mount (Supports both master_login and connect_account)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const stateStr = urlParams.get('state');
 
     if (code && (window.location.pathname.includes('/auth/callback') || urlParams.has('code'))) {
-      let accountId = '1';
+      let parsedState = {};
       try {
-        if (stateStr) {
-          const parsed = JSON.parse(stateStr);
-          if (parsed.account_id) accountId = parsed.account_id;
-        }
+        if (stateStr) parsedState = JSON.parse(stateStr);
       } catch (e) {
         console.warn('Could not parse OAuth state:', e);
       }
 
+      const intent = parsedState.intent || 'connect_account';
+      const accountId = parsedState.account_id || '1';
+      const accountName = parsedState.account_name || `Google Account #${accountId}`;
+
       setOauthNotice({
         type: 'loading',
-        message: `Verifying Google Cloud OAuth authorization for Account #${accountId}...`,
+        message: intent === 'master_login'
+          ? 'Authenticating user with Google Cloud OAuth...'
+          : `Verifying Google OAuth connection for "${accountName}"...`,
       });
 
       fetch('/api/auth-callback', {
@@ -65,55 +120,104 @@ export default function App() {
           code,
           client_id: '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com',
           origin: window.location.origin,
-          redirect_uri: `${window.location.origin}/auth/callback`,
+          redirect_uri: parsedState.redirect_uri || `${window.location.origin}/auth/callback`,
         }),
       })
         .then((res) => res.json())
         .then((resp) => {
           if (resp.status === 'success' && resp.account) {
-            const savedAccounts = JSON.parse(localStorage.getItem('antigravity_cloud_accounts') || '[]');
-            const baseAccounts = savedAccounts.length ? savedAccounts : (data?.accounts || []);
-            const updated = baseAccounts.map((acc) => {
-              if (acc.id.toString() === accountId.toString()) {
-                return {
-                  ...acc,
-                  email: resp.account.email,
-                  name: resp.account.name || `Google Account #${accountId}`,
-                  avatar: resp.account.picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(resp.account.email)}`,
-                  isConnected: true,
-                  status: 'Cloud Verified',
-                  connected_at: resp.account.connected_at || new Date().toISOString(),
-                };
-              }
-              return acc;
-            });
+            if (intent === 'master_login') {
+              // Master Login / Signup Successful
+              const loggedUser = {
+                id: resp.account.google_id || `google_${Date.now()}`,
+                name: resp.account.name || 'Google Developer',
+                email: resp.account.email,
+                avatar: resp.account.picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(resp.account.email)}`,
+                created_at: resp.account.connected_at,
+                auth_provider: 'google_oauth',
+              };
+              setCurrentUser(loggedUser);
+              setUserName(loggedUser.name);
 
-            localStorage.setItem('antigravity_cloud_accounts', JSON.stringify(updated));
-            fetch('/api/accounts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ accounts: updated }),
-            }).catch(() => {});
+              setOauthNotice({
+                type: 'success',
+                message: `Signed in as ${loggedUser.email}! Welcome to Antigravity Token Matrix.`,
+              });
 
-            setActiveTab('accounts');
-            setOauthNotice({
-              type: 'success',
-              message: `Successfully connected ${resp.account.email} to Slot #${accountId} with 24/7 cloud sync!`,
-            });
-            confetti({
-              particleCount: 80,
-              spread: 80,
-              origin: { y: 0.4 },
-              colors: ['#00ff88', '#00f0ff', '#4285F4'],
-            });
+              confetti({
+                particleCount: 90,
+                spread: 80,
+                origin: { y: 0.4 },
+                colors: ['#00ff88', '#00f0ff', '#4285F4'],
+              });
+            } else {
+              // Connect Account Flow
+              const newConnectedAccount = {
+                id: parseInt(accountId, 10) || Date.now(),
+                name: accountName,
+                email: resp.account.email,
+                avatar: resp.account.picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(resp.account.email)}`,
+                auth_type: 'google_oauth',
+                isConnected: true,
+                status: 'Verified & Active',
+                quota_tokens: 10_000_000,
+                total_tokens: 0,
+                percent_used: 0,
+                connected_at: resp.account.connected_at || new Date().toISOString(),
+                errorDetails: null,
+              };
+
+              const existingList = accountsList.filter((a) => a.id.toString() !== accountId.toString());
+              const updated = [...existingList, newConnectedAccount];
+              handleAccountsChange(updated);
+
+              setActiveTab('accounts');
+              setOauthNotice({
+                type: 'success',
+                message: `Successfully linked ${resp.account.email} to ${accountName} with 24/7 cloud sync!`,
+              });
+
+              confetti({
+                particleCount: 90,
+                spread: 80,
+                origin: { y: 0.4 },
+                colors: ['#00ff88', '#00f0ff', '#4285F4'],
+              });
+            }
           } else {
+            // Failure: Provide Specific Diagnostic Breakdown
+            const diagData = {
+              title: 'Google OAuth Verification Failed',
+              service: 'Google OAuth 2.0 Token Endpoint',
+              httpStatus: 400,
+              errorCode: resp.error_code || 'AUTH_EXCHANGE_FAILED',
+              rawMessage: resp.error || 'Unknown error occurred during OAuth code exchange.',
+              diagnosis: resp.diagnosis || 'Google OAuth returned an error exchanging the authorization code.',
+              fixSteps: resp.fix_steps || [
+                'Ensure redirect URI is authorized in Google Cloud Console Credentials.',
+                'Retry the sign-in from the application.',
+              ],
+              rawObject: resp.raw_google_error,
+              testedAt: new Date().toLocaleTimeString(),
+            };
+
+            setGlobalDiagnostic(diagData);
             setOauthNotice({
               type: 'error',
-              message: `Google OAuth verification failed: ${resp.error || 'Unknown error'}`,
+              message: `OAuth Error [${resp.error_code || 'FAILED'}]: ${resp.error || 'Authorization failed'}`,
             });
           }
         })
         .catch((err) => {
+          setGlobalDiagnostic({
+            title: 'OAuth Network Exception',
+            service: 'OAuth Endpoint',
+            httpStatus: 0,
+            errorCode: 'NETWORK_EXCEPTION',
+            rawMessage: err.message,
+            diagnosis: 'Network communication failure contacting the token exchange server.',
+            fixSteps: ['Check your internet connection and try again.'],
+          });
           setOauthNotice({
             type: 'error',
             message: `Network error verifying OAuth: ${err.message}`,
@@ -132,7 +236,7 @@ export default function App() {
     localStorage.setItem('antigravity_user_name', userName);
   }, [userName]);
 
-  // Try to load newest from Netlify Function /api/usage (cloud 24/7) or /antigravity-data.json
+  // Load telemetry from Netlify /api/usage or fallback
   useEffect(() => {
     fetch('/api/usage')
       .then((res) => {
@@ -152,162 +256,136 @@ export default function App() {
               setData(json);
             }
           })
-          .catch(() => {
-            // Embedded initialData already active
-          });
+          .catch(() => {});
       });
   }, []);
 
-  // Filter calendar days based on timeRange
+  // Filter Calendar Days based on timeRange
   const filteredDays = useMemo(() => {
-    if (!data?.calendar_days) return [];
-    const all = data.calendar_days;
-    if (timeRange === '7d') {
-      return all.slice(-7);
-    }
-    if (timeRange === '30d') {
-      return all.slice(-30);
-    }
-    if (timeRange === 'year') {
-      return all.slice(-365);
-    }
-    return all;
+    if (!data || !data.calendar_days) return [];
+    const allDays = data.calendar_days;
+
+    if (timeRange === 'all') return allDays;
+
+    const daysCount = timeRange === 'year' ? 365 : timeRange === '30d' ? 30 : 7;
+    return allDays.slice(-daysCount);
   }, [data, timeRange]);
 
-  // Calculate dynamic filtered totals based on model, account, and metric
-  const { filteredTokens, filteredCost, activeDaysCount, totalTokensFormatted } = useMemo(() => {
-    if (!filteredDays.length) {
-      return { filteredTokens: 0, filteredCost: 0, activeDaysCount: 0, totalTokensFormatted: '0' };
-    }
-
-    let tSum = 0;
-    let cSum = 0;
-    let aDays = 0;
-
-    filteredDays.forEach((d) => {
-      let dayTokens = 0;
-      let dayCost = 0;
-
-      if (selectedModel !== 'all') {
-        const m = d.models?.[selectedModel];
-        if (m) {
-          if (metricType === 'input') dayTokens = m.in;
-          else if (metricType === 'output') dayTokens = m.out;
-          else if (metricType === 'cache') dayTokens = m.cache;
-          else if (metricType === 'cost') dayTokens = m.cost;
-          else dayTokens = m.total;
-          dayCost = m.cost;
-        }
-      } else if (selectedAccount !== 'all') {
-        const a = d.accounts?.[selectedAccount];
-        if (a) {
-          if (metricType === 'input') dayTokens = a.in;
-          else if (metricType === 'output') dayTokens = a.out;
-          else if (metricType === 'cost') dayTokens = a.cost;
-          else dayTokens = a.total;
-          dayCost = a.cost;
-        }
-      } else {
-        if (metricType === 'input') dayTokens = d.input_tokens;
-        else if (metricType === 'output') dayTokens = d.output_tokens;
-        else if (metricType === 'cache') dayTokens = d.cached_tokens;
-        else if (metricType === 'cost') dayTokens = d.cost_usd;
-        else dayTokens = d.total_tokens;
-        dayCost = d.cost_usd;
-      }
-
-      tSum += dayTokens;
-      cSum += dayCost;
-      if (dayTokens >= 50) aDays++;
-    });
-
-    // Format string (e.g. 25.8M)
-    let formatted = '0';
-    if (tSum >= 1_000_000_000) formatted = (tSum / 1_000_000_000).toFixed(2) + 'B';
-    else if (tSum >= 1_000_000) formatted = (tSum / 1_000_000).toFixed(1) + 'M';
-    else if (tSum >= 1_000) formatted = (tSum / 1_000).toFixed(0) + 'K';
-    else formatted = tSum.toLocaleString();
-
-    return {
-      filteredTokens: tSum,
-      filteredCost: cSum,
-      activeDaysCount: aDays,
-      totalTokensFormatted: formatted,
-    };
-  }, [filteredDays, selectedModel, selectedAccount, metricType]);
-
-  // Extract models list
+  // Compute Models List from actual data
   const modelsList = useMemo(() => {
-    return Object.keys(data?.models || {});
+    if (!data || !data.models) return [];
+    return Object.keys(data.models);
   }, [data]);
 
-  // Handle day select
+  // Filtered Totals based on current metrics and account filter
+  const { filteredTokens, filteredCost, activeDaysCount } = useMemo(() => {
+    let tokens = 0;
+    let cost = 0;
+    let activeDays = 0;
+
+    filteredDays.forEach((day) => {
+      let dayTokens = 0;
+
+      if (metricType === 'total') dayTokens = day.total_tokens || 0;
+      else if (metricType === 'input') dayTokens = day.input_tokens || 0;
+      else if (metricType === 'output') dayTokens = day.output_tokens || 0;
+      else if (metricType === 'cache') dayTokens = day.cache_read_tokens || 0;
+      else if (metricType === 'cost') dayTokens = day.total_tokens || 0;
+
+      if (selectedModel !== 'all' && day.models && day.models[selectedModel]) {
+        dayTokens = day.models[selectedModel].total_tokens || 0;
+      }
+
+      if (dayTokens > 0) {
+        activeDays++;
+        tokens += dayTokens;
+        cost += (dayTokens / 1_000_000) * 1.5;
+      }
+    });
+
+    return {
+      filteredTokens: tokens,
+      filteredCost: cost,
+      activeDaysCount: activeDays,
+    };
+  }, [filteredDays, metricType, selectedModel]);
+
+  const totalTokensFormatted = useMemo(() => {
+    if (filteredTokens >= 1_000_000) {
+      return (filteredTokens / 1_000_000).toFixed(2) + 'M';
+    }
+    if (filteredTokens >= 1_000) {
+      return (filteredTokens / 1_000).toFixed(1) + 'k';
+    }
+    return filteredTokens.toString();
+  }, [filteredTokens]);
+
   const handleSelectDay = (day) => {
     setSelectedDay(day);
-    // Celebrate if level >= 4
-    if (day.level >= 4) {
+  };
+
+  const handleImportData = (newJson) => {
+    if (newJson && newJson.calendar_days) {
+      setData(newJson);
       confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#00ff88', '#39d353', '#00f0ff'],
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#00ff88', '#00f0ff', '#ff0055', '#ffe600'],
       });
     }
   };
 
-  // Trigger sync
-  const handleTriggerSync = () => {
+  const handleTriggerSync = async () => {
     setIsSyncing(true);
-    // Reload data after a simulated delay or fetch
-    setTimeout(() => {
-      fetch('/antigravity-data.json?t=' + Date.now())
-        .then((r) => r.json())
-        .then((json) => {
-          setData(json);
-          setIsSyncing(false);
-          confetti({
-            particleCount: 40,
-            spread: 50,
-            origin: { y: 0.5 },
-            colors: ['#00ff88', '#ffffff'],
-          });
-        })
-        .catch(() => {
-          setIsSyncing(false);
-        });
-    }, 1200);
-  };
-
-  const handleImportData = (newJson) => {
-    setData(newJson);
-    confetti({
-      particleCount: 70,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-  };
-
-  const handleTokensSimulated = (tokenCount) => {
-    if (!tokenCount) return;
-    setData((prev) => {
-      if (!prev) return prev;
-      const copy = { ...prev };
-      if (copy.summary) {
-        copy.summary = {
-          ...copy.summary,
-          total_tokens: (copy.summary.total_tokens || 0) + tokenCount,
-        };
+    try {
+      const res = await fetch('/api/sync', { method: 'POST' });
+      if (res.ok) {
+        const updated = await res.json();
+        if (updated && updated.data) {
+          setData(updated.data);
+        }
       }
-      return copy;
-    });
+    } catch (e) {
+      console.warn('Sync via netlify functions failed, fallback to local', e);
+    } finally {
+      setIsSyncing(false);
+    }
   };
+
+  // Sign out handler
+  const handleLogout = () => {
+    if (confirm('Sign out of Antigravity Token Matrix?')) {
+      setCurrentUser(null);
+    }
+  };
+
+  // If user is NOT authenticated, display the Authentication Screen
+  if (!currentUser) {
+    return (
+      <AuthScreen
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.5 },
+            colors: ['#00ff88', '#00f0ff', '#4285F4'],
+          });
+        }}
+        initialError={globalDiagnostic}
+      />
+    );
+  }
 
   return (
     <div className="app-container">
-      {/* 1. Header Navigation & Filter Bar */}
+      {/* 1. Header with dynamic user profile and subfilters */}
       <Header
         userName={userName}
         setUserName={setUserName}
+        currentUser={currentUser}
+        onLogout={handleLogout}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         timeRange={timeRange}
@@ -319,42 +397,48 @@ export default function App() {
         selectedAccount={selectedAccount}
         setSelectedAccount={setSelectedAccount}
         modelsList={modelsList}
-        accountsList={data?.accounts || []}
+        accountsList={accountsList}
         onOpenSync={() => setIsSyncModalOpen(true)}
         onOpenSaaS={() => setIsSaaSOpen(true)}
         totalTokensFormatted={totalTokensFormatted}
         activeDaysCount={activeDaysCount}
       />
 
-      {/* OAuth Callback Notice Banner */}
+      {/* Floating OAuth Notification Banner */}
       {oauthNotice && (
-        <div style={{
-          margin: '0.75rem 1.5rem',
-          padding: '0.85rem 1.25rem',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          fontSize: '0.9rem',
-          fontWeight: 500,
-          background: oauthNotice.type === 'success'
-            ? 'rgba(0, 255, 136, 0.12)'
-            : oauthNotice.type === 'error'
-            ? 'rgba(255, 75, 75, 0.15)'
-            : 'rgba(0, 240, 255, 0.12)',
-          border: `1px solid ${
-            oauthNotice.type === 'success'
-              ? 'rgba(0, 255, 136, 0.3)'
-              : oauthNotice.type === 'error'
-              ? 'rgba(255, 75, 75, 0.3)'
-              : 'rgba(0, 240, 255, 0.3)'
-          }`,
-          color: oauthNotice.type === 'success'
-            ? '#00ff88'
-            : oauthNotice.type === 'error'
-            ? '#ff6b6b'
-            : '#00f0ff',
-        }}>
+        <div
+          className={`oauth-status-toast ${oauthNotice.type}`}
+          style={{
+            position: 'sticky',
+            top: '16px',
+            zIndex: 9000,
+            padding: '12px 20px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            backdropFilter: 'blur(16px)',
+            background:
+              oauthNotice.type === 'success'
+                ? 'rgba(0, 255, 136, 0.15)'
+                : oauthNotice.type === 'error'
+                ? 'rgba(255, 50, 50, 0.18)'
+                : 'rgba(0, 240, 255, 0.15)',
+            border: `1px solid ${
+              oauthNotice.type === 'success'
+                ? 'rgba(0, 255, 136, 0.4)'
+                : oauthNotice.type === 'error'
+                ? 'rgba(255, 77, 77, 0.5)'
+                : 'rgba(0, 240, 255, 0.3)'
+            }`,
+            color:
+              oauthNotice.type === 'success'
+                ? '#00ff88'
+                : oauthNotice.type === 'error'
+                ? '#ff6b6b'
+                : '#00f0ff',
+          }}
+        >
           {oauthNotice.type === 'loading' && <RefreshCw size={18} className="spin-anim" />}
           {oauthNotice.type === 'success' && <CheckCircle2 size={18} />}
           {oauthNotice.type === 'error' && <AlertCircle size={18} />}
@@ -362,7 +446,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. Top Stats Banner matching Image 1 layout */}
+      {/* 2. Top Stats Banner matching layout */}
       <StatsBanner
         summary={data?.summary}
         filteredTokens={filteredTokens}
@@ -382,9 +466,7 @@ export default function App() {
         />
       )}
 
-      {activeTab === 'git' && (
-        <GitHubMatrix />
-      )}
+      {activeTab === 'git' && <GitHubMatrix />}
 
       {activeTab === 'isometric' && (
         <Isometric3D
@@ -405,18 +487,14 @@ export default function App() {
 
       {activeTab === 'accounts' && (
         <AccountsHub
-          accounts={data?.accounts || []}
+          accounts={accountsList}
+          onAccountsChange={handleAccountsChange}
+          selectedAccountFilter={selectedAccount}
           onSelectAccountFilter={(accId) => {
             setSelectedAccount(accId);
             setActiveTab('overview');
           }}
-        />
-      )}
-
-      {activeTab === 'connector' && (
-        <OmniConnector
-          accounts={data?.accounts || []}
-          onTokensSimulated={handleTokensSimulated}
+          currentUser={currentUser}
         />
       )}
 
@@ -438,10 +516,7 @@ export default function App() {
 
       {/* Modals */}
       {selectedDay && (
-        <DayModal
-          day={selectedDay}
-          onClose={() => setSelectedDay(null)}
-        />
+        <DayModal day={selectedDay} onClose={() => setSelectedDay(null)} />
       )}
 
       {isSyncModalOpen && (
@@ -455,14 +530,21 @@ export default function App() {
       )}
 
       {isExplainerOpen && (
-        <ExplainerModal
-          onClose={() => setIsExplainerOpen(false)}
-        />
+        <ExplainerModal onClose={() => setIsExplainerOpen(false)} />
       )}
 
       {isSaaSOpen && (
-        <SaaSAuthModal
-          onClose={() => setIsSaaSOpen(false)}
+        <SaaSAuthModal onClose={() => setIsSaaSOpen(false)} />
+      )}
+
+      {globalDiagnostic && (
+        <ErrorDiagnosticModal
+          errorData={globalDiagnostic}
+          onClose={() => setGlobalDiagnostic(null)}
+          onRetry={() => {
+            setGlobalDiagnostic(null);
+            setActiveTab('accounts');
+          }}
         />
       )}
     </div>

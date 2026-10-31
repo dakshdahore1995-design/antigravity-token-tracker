@@ -7,7 +7,6 @@ import {
   Users,
   Clock,
   RefreshCw,
-  Upload,
   Globe,
   SlidersHorizontal,
   Flame,
@@ -16,12 +15,16 @@ import {
   Check,
   GitBranch,
   Building2,
-  Share2
+  LogOut,
+  User,
+  Plus
 } from 'lucide-react';
 
 export default function Header({
   userName,
   setUserName,
+  currentUser,
+  onLogout,
   activeTab,
   setActiveTab,
   timeRange,
@@ -33,11 +36,11 @@ export default function Header({
   selectedAccount,
   setSelectedAccount,
   modelsList,
-  accountsList,
+  accountsList = [],
   onOpenSync,
   onOpenSaaS,
   totalTokensFormatted,
-  activeDaysCount
+  activeDaysCount,
 }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(userName);
@@ -50,9 +53,12 @@ export default function Header({
     setIsEditingName(false);
   };
 
+  const userAvatar = currentUser?.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(userName || 'User')}`;
+  const userEmail = currentUser?.email || 'authenticated.developer@gmail.com';
+
   return (
     <header className="header-container glass-panel">
-      {/* Top Bar: Personalized greeting + Quick Action buttons */}
+      {/* Top Bar: Personalized greeting + User Session + Quick Action buttons */}
       <div className="header-top">
         <div className="header-greeting-wrapper">
           <div className="greeting-icon">
@@ -81,16 +87,35 @@ export default function Header({
               </h1>
             )}
             <p className="greeting-subtitle">
-              Antigravity AI Token Matrix • 
+              Antigravity AI Token Matrix •{' '}
               <span className="live-pulse-badge">
-                <span className="pulse-dot"></span> ☁️ 100% Cloud Netlify Serverless (24/7 Anywhere)
+                <span className="pulse-dot"></span> ☁️ 100% Cloud Netlify Serverless (Multi-Account Ready)
               </span>
             </p>
           </div>
         </div>
 
+        {/* User Profile & Actions Group */}
         <div className="header-actions">
-          <button 
+          {/* User Account Pill */}
+          <div className="user-profile-pill">
+            <img src={userAvatar} alt={userName} className="user-pill-avatar" />
+            <div className="user-pill-info">
+              <span className="user-pill-name">{userName}</span>
+              <span className="user-pill-email">{userEmail}</span>
+            </div>
+            {onLogout && (
+              <button
+                className="user-logout-btn"
+                onClick={onLogout}
+                title="Sign out of current workspace"
+              >
+                <LogOut size={14} />
+              </button>
+            )}
+          </div>
+
+          <button
             className="action-btn action-saas"
             onClick={onOpenSaaS}
             title="SaaS Subscriptions, Multi-Account Family Workspace & Monetization"
@@ -100,16 +125,16 @@ export default function Header({
             <span className="badge badge-neon" style={{ fontSize: '0.65rem' }}>Sellable</span>
           </button>
 
-          <button 
+          <button
             className="action-btn action-sync"
             onClick={() => setActiveTab('accounts')}
-            title="Connect your 7 Google accounts via OAuth in the cloud"
+            title="Manage connected Google & Gemini accounts"
           >
             <Users size={15} />
-            <span>Connect Google Accounts</span>
+            <span>Accounts ({accountsList.length})</span>
           </button>
 
-          <button 
+          <button
             onClick={onOpenSync}
             className="action-btn action-netlify"
             title="View Netlify Cloud Serverless Functions status"
@@ -163,16 +188,7 @@ export default function Header({
           >
             <Users size={16} />
             <span>Pro Accounts Hub</span>
-            <span className="tab-pill-green">{accountsList.length || 7} Accounts</span>
-          </button>
-
-          <button
-            className={`nav-tab-btn ${activeTab === 'connector' ? 'active' : ''}`}
-            onClick={() => setActiveTab('connector')}
-          >
-            <Share2 size={16} />
-            <span>OmniRoute Connector</span>
-            <span className="tab-pill-neon">Zero Install</span>
+            <span className="tab-pill-green">{accountsList.length} Accounts</span>
           </button>
 
           <button
@@ -184,7 +200,7 @@ export default function Header({
           </button>
         </div>
 
-        {/* Time Filter Tabs (Matching Image 1: All | 30d | 7d) */}
+        {/* Time Filter Tabs */}
         <div className="time-filter-group">
           {[
             { id: 'all', label: 'All' },
@@ -212,10 +228,10 @@ export default function Header({
             onChange={(e) => setSelectedAccount(e.target.value)}
             className="filter-select"
           >
-            <option value="all">⚡ All {accountsList.length || 7} Accounts (Unified Pool)</option>
+            <option value="all">⚡ All Linked Accounts (Unified Pool)</option>
             {accountsList.map((acc) => (
               <option key={acc.id} value={acc.id}>
-                Account #{acc.id} — {acc.name} ({acc.percent_used}% quota)
+                {acc.name} — {acc.email || 'API Key'} ({acc.percent_used || 0}% quota)
               </option>
             ))}
           </select>

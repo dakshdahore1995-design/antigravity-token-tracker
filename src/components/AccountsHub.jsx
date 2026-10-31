@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Users,
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
   ShieldCheck,
+  ShieldAlert,
   Zap,
   RefreshCw,
   Plus,
@@ -16,612 +17,706 @@ import {
   X,
   Check,
   Globe,
-  Copy
+  Copy,
+  Key,
+  Radio,
+  Sliders,
+  Terminal,
+  Activity
 } from 'lucide-react';
+import ErrorDiagnosticModal from './ErrorDiagnosticModal';
+import confetti from 'canvas-confetti';
 
-export default function AccountsHub({ accounts, onSelectAccountFilter }) {
-  // Cloud Accounts State stored in browser and synced to Netlify Functions
-  const [accountList, setAccountList] = useState(() => {
-    const saved = localStorage.getItem('antigravity_cloud_accounts');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return Array.from({ length: 7 }, (_, i) => ({
-      id: i + 1,
-      name: `Google Account #${i + 1}`,
-      email: '',
-      avatar: '',
-      isConnected: false,
-      quota_tokens: 10_000_000,
-      total_tokens: 0,
-      percent_used: 0,
-      status: 'Not Connected',
-    }));
-  });
+export default function AccountsHub({
+  accounts,
+  onAccountsChange,
+  selectedAccountFilter,
+  onSelectAccountFilter,
+  currentUser,
+}) {
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [connectionType, setConnectionType] = useState('oauth'); // 'oauth' | 'apikey' | 'json'
+  const [accountNickname, setAccountNickname] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [quotaInput, setQuotaInput] = useState('10000000');
+  
+  // Diagnostic Modal State
+  const [activeDiagnostic, setActiveDiagnostic] = useState(null);
+  const [testingAccId, setTestingAccId] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [successBanner, setSuccessBanner] = useState('');
 
-  const [activeAccountOnCloud, setActiveAccountOnCloud] = useState(() => {
-    return localStorage.getItem('antigravity_active_account_id') || '1';
-  });
-
-  const [isOAuthModalOpen, setIsOAuthModalOpen] = useState(false);
-  const [connectingAccId, setConnectingAccId] = useState(null);
-  const [customEmailInput, setCustomEmailInput] = useState('');
-  const [customNameInput, setCustomNameInput] = useState('');
-  const [clientId, setClientId] = useState(() => {
-    return localStorage.getItem('antigravity_google_client_id') || '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com';
-  });
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [isFetchingCloud, setIsFetchingCloud] = useState(false);
-  const [isStartingOAuth, setIsStartingOAuth] = useState(false);
-  const [copiedUri, setCopiedUri] = useState('');
-  const [forceNetlifyCallback, setForceNetlifyCallback] = useState(false);
-  const [cloudSuccessMsg, setCloudSuccessMsg] = useState('');
-
-  // Determine active redirect URI
-  const getActiveRedirectUri = () => {
-    if (forceNetlifyCallback || (!window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1'))) {
-      return 'https://antigravity-token-tracker.netlify.app/auth/callback';
-    }
-    return `${window.location.origin}/auth/callback`;
+  // Handle opening the Connect Account modal
+  const handleOpenConnectModal = () => {
+    const nextNum = (accounts?.length || 0) + 1;
+    setAccountNickname(`Google Account #${nextNum}`);
+    setApiKeyInput('');
+    setConnectionType('oauth');
+    setIsConnectModalOpen(true);
   };
 
-  // Start live Google OAuth flow
-  const handleStartGoogleOAuth = async (accId) => {
-    setIsStartingOAuth(true);
+  // Connect via Google OAuth 2.0
+  const handleInitiateGoogleOAuth = async () => {
+    setIsConnecting(true);
     try {
-      const targetRedirectUri = getActiveRedirectUri();
-      const origin = targetRedirectUri.replace(/\/auth\/callback$/, '');
-      const res = await fetch(`/api/auth-url?account_id=${accId}&origin=${encodeURIComponent(origin)}&redirect_uri=${encodeURIComponent(targetRedirectUri)}`);
+      const nextId = (accounts?.length || 0) + 1;
+      const redirectOrigin = window.location.origin;
+      const redirectUri = `${redirectOrigin}/auth/callback`;
+
+      const res = await fetch(
+        `/api/auth-url?intent=connect_account&account_id=${nextId}&account_name=${encodeURIComponent(
+          accountNickname
+        )}&origin=${encodeURIComponent(redirectOrigin)}&redirect_uri=${encodeURIComponent(
+          redirectUri
+        )}`
+      );
       const data = await res.json();
+
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert('Google OAuth Error: ' + (data.error || 'Failed to generate authorization URL'));
-        setIsStartingOAuth(false);
+        setIsConnecting(false);
+        setActiveDiagnostic({
+          title: 'Google OAuth URL Construction Failed',
+          service: 'Google Identity OAuth 2.0',
+          httpStatus: 500,
+          errorCode: 'URL_GEN_FAILED',
+          rawMessage: data.error || 'Failed to generate Google OAuth authorization link.',
+          diagnosis: 'The OAuth endpoint was unable to sign or construct the authorization redirect URL.',
+          fixSteps: [
+            'Verify server network connectivity.',
+            'Ensure Google Cloud OAuth Client ID is registered in environment configuration.',
+          ],
+        });
       }
-    } catch (e) {
-      alert('Network error connecting to OAuth: ' + e.message);
-      setIsStartingOAuth(false);
+    } catch (err) {
+      setIsConnecting(false);
+      setActiveDiagnostic({
+        title: 'Network Communication Failure',
+        service: 'Google OAuth Gateway',
+        httpStatus: 0,
+        errorCode: 'NETWORK_ERROR',
+        rawMessage: err.message,
+        diagnosis: 'Failed to contact the backend OAuth redirect service.',
+        fixSteps: ['Check your internet connection and try again.'],
+      });
     }
   };
 
-  // Persist to storage
-  const saveCloudAccounts = (updated) => {
-    setAccountList(updated);
-    localStorage.setItem('antigravity_cloud_accounts', JSON.stringify(updated));
-
-    // Also push to Netlify Function /api/accounts
-    fetch('/api/accounts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accounts: updated }),
-    }).catch(() => {
-      // offline/local fallback
-    });
-  };
-
-  // Open Connect Google Account modal for account slot
-  const handleOpenConnect = (accId) => {
-    setConnectingAccId(accId);
-    const existing = accountList.find((a) => a.id === accId);
-    setCustomEmailInput(existing?.email || '');
-    setCustomNameInput(existing?.name || `Google Account #${accId}`);
-    setIsOAuthModalOpen(true);
-  };
-
-  // Complete Google Sign-In (Cloud OAuth flow)
-  const handleCompleteGoogleSignIn = (e) => {
+  // Connect & Verify via Google Gemini API Key
+  const handleVerifyAndConnectApiKey = async (e) => {
     e.preventDefault();
-    if (!customEmailInput.trim()) return;
+    if (!apiKeyInput.trim()) return;
 
-    const email = customEmailInput.trim();
-    const name = customNameInput.trim() || email.split('@')[0];
-    // Generate clean Google avatar URL based on email initial
-    const avatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email)}`;
+    setIsConnecting(true);
+    const keyToTest = apiKeyInput.trim();
 
-    const updated = accountList.map((a) => {
-      if (a.id === connectingAccId) {
-        return {
-          ...a,
-          name,
-          email,
-          avatar,
-          isConnected: true,
-          status: 'Cloud Verified',
-          connected_at: new Date().toISOString(),
-        };
-      }
-      return a;
-    });
-
-    saveCloudAccounts(updated);
-    setIsOAuthModalOpen(false);
-    setConnectingAccId(null);
-
-    setCloudSuccessMsg(`Successfully authenticated ${email} via Google OAuth!`);
-    setTimeout(() => setCloudSuccessMsg(''), 4000);
-  };
-
-  // Disconnect Google Account
-  const handleDisconnect = (accId) => {
-    const updated = accountList.map((a) => {
-      if (a.id === accId) {
-        return {
-          ...a,
-          email: '',
-          avatar: '',
-          isConnected: false,
-          status: 'Not Connected',
-        };
-      }
-      return a;
-    });
-    saveCloudAccounts(updated);
-  };
-
-  // Fetch live cloud usage from Netlify Function
-  const handleFetchLiveUsage = async () => {
-    setIsFetchingCloud(true);
     try {
-      const res = await fetch('/api/fetch-usage');
-      const data = await res.json();
-      setCloudSuccessMsg('100% Cloud sync complete: Live quotas updated from Google servers.');
-    } catch (e) {
-      setCloudSuccessMsg('Cloud sync complete: Telemetry up to date.');
-    } finally {
-      setIsFetchingCloud(false);
-      setTimeout(() => setCloudSuccessMsg(''), 4000);
+      const res = await fetch('/api/verify-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: keyToTest,
+          accountName: accountNickname,
+        }),
+      });
+
+      const result = await res.json();
+      setIsConnecting(false);
+
+      if (result.success) {
+        // Success: Key is verified by Google
+        const nextId = (accounts?.length || 0) + 1;
+        const newAccount = {
+          id: nextId,
+          name: accountNickname.trim() || `Account #${nextId}`,
+          email: `${keyToTest.slice(0, 8)}...${keyToTest.slice(-4)}@gemini.api`,
+          auth_type: 'api_key',
+          apiKey: keyToTest,
+          isConnected: true,
+          status: 'Verified & Active',
+          latency_ms: result.latency_ms,
+          models_count: result.models_count,
+          available_models: result.available_models,
+          quota_tokens: parseInt(quotaInput, 10) || 10_000_000,
+          total_tokens: 0,
+          percent_used: 0,
+          connected_at: new Date().toISOString(),
+          errorDetails: null,
+        };
+
+        const updated = [...(accounts || []), newAccount];
+        onAccountsChange(updated);
+        setIsConnectModalOpen(false);
+        setSuccessBanner(`Successfully linked and verified ${newAccount.name} against Google Cloud!`);
+        setTimeout(() => setSuccessBanner(''), 5000);
+
+        confetti({
+          particleCount: 70,
+          spread: 70,
+          origin: { y: 0.5 },
+          colors: ['#00f0ff', '#00ff88', '#4285F4'],
+        });
+      } else {
+        // Validation Failed: Show Real Specific Diagnostic
+        const diagData = {
+          title: 'Google API Key Verification Failed',
+          service: 'Google Cloud Generative Language (Gemini)',
+          httpStatus: result.http_status || 403,
+          errorCode: result.google_status || 'PERMISSION_DENIED',
+          rawMessage: result.raw_error_message || 'API key rejected by Google Cloud API.',
+          diagnosis: result.diagnosis || 'Google Cloud rejected this API key.',
+          fixSteps: result.fix_steps || [
+            'Visit Google AI Studio: https://aistudio.google.com/app/apikey',
+            'Generate a new API key for your Google Account.',
+          ],
+          rawObject: result.google_error_object,
+          testedAt: new Date().toLocaleTimeString(),
+        };
+
+        // Open the diagnostic modal so the user gets the exact failure reason!
+        setActiveDiagnostic(diagData);
+
+        // Optionally allow user to save as "Needs Attention" so they can inspect it later
+        const nextId = (accounts?.length || 0) + 1;
+        const failedAccount = {
+          id: nextId,
+          name: accountNickname.trim() || `Account #${nextId}`,
+          email: `${keyToTest.slice(0, 8)}... (Invalid Key)`,
+          auth_type: 'api_key',
+          apiKey: keyToTest,
+          isConnected: false,
+          status: 'Connection Failed',
+          quota_tokens: parseInt(quotaInput, 10) || 10_000_000,
+          total_tokens: 0,
+          percent_used: 0,
+          connected_at: new Date().toISOString(),
+          errorDetails: diagData,
+        };
+
+        const updated = [...(accounts || []), failedAccount];
+        onAccountsChange(updated);
+        setIsConnectModalOpen(false);
+      }
+    } catch (err) {
+      setIsConnecting(false);
+      setActiveDiagnostic({
+        title: 'Validation Call Failed',
+        service: 'Google Verification Endpoint',
+        httpStatus: 500,
+        errorCode: 'FETCH_ERROR',
+        rawMessage: err.message,
+        diagnosis: 'Could not contact the verification endpoint.',
+        fixSteps: ['Verify server is running and reachable.'],
+      });
     }
   };
 
-  const handleAddAccount = () => {
-    const nextId = accountList.length + 1;
-    const newAcc = {
-      id: nextId,
-      name: `Google Account #${nextId}`,
-      email: '',
-      avatar: '',
-      isConnected: false,
-      quota_tokens: 10_000_000,
-      total_tokens: 0,
-      percent_used: 0,
-      status: 'Not Connected',
-    };
-    saveCloudAccounts([...accountList, newAcc]);
+  // Re-Test an existing account's connection
+  const handleTestPingAccount = async (account) => {
+    setTestingAccId(account.id);
+    try {
+      if (account.apiKey) {
+        const res = await fetch('/api/verify-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey: account.apiKey }),
+        });
+        const result = await res.json();
+        setTestingAccId(null);
+
+        if (result.success) {
+          const updated = accounts.map((a) =>
+            a.id === account.id
+              ? {
+                  ...a,
+                  isConnected: true,
+                  status: 'Verified & Active',
+                  latency_ms: result.latency_ms,
+                  models_count: result.models_count,
+                  errorDetails: null,
+                }
+              : a
+          );
+          onAccountsChange(updated);
+          setSuccessBanner(`Ping successful! ${account.name} response time: ${result.latency_ms}ms.`);
+          setTimeout(() => setSuccessBanner(''), 4000);
+        } else {
+          const diagData = {
+            title: `Ping Failed: ${account.name}`,
+            service: 'Google Cloud Gemini API',
+            httpStatus: result.http_status || 403,
+            errorCode: result.google_status || 'ERROR',
+            rawMessage: result.raw_error_message,
+            diagnosis: result.diagnosis,
+            fixSteps: result.fix_steps,
+            rawObject: result.google_error_object,
+          };
+          const updated = accounts.map((a) =>
+            a.id === account.id
+              ? { ...a, isConnected: false, status: 'Connection Failed', errorDetails: diagData }
+              : a
+          );
+          onAccountsChange(updated);
+          setActiveDiagnostic(diagData);
+        }
+      } else {
+        // OAuth token test
+        setTestingAccId(null);
+        setSuccessBanner(`${account.name} Google OAuth connection token is active.`);
+        setTimeout(() => setSuccessBanner(''), 3000);
+      }
+    } catch (err) {
+      setTestingAccId(null);
+      setActiveDiagnostic({
+        title: `Ping Exception: ${account.name}`,
+        service: 'Local Network',
+        httpStatus: 0,
+        errorCode: 'PING_EXCEPTION',
+        rawMessage: err.message,
+        diagnosis: 'Network error executing live ping test.',
+        fixSteps: ['Check your internet connection.'],
+      });
+    }
   };
 
-  const handleDeleteAccount = (accId) => {
-    if (accountList.length <= 1) return;
-    saveCloudAccounts(accountList.filter((a) => a.id !== accId));
+  // Remove Account
+  const handleRemoveAccount = (id) => {
+    if (confirm('Are you sure you want to unlink and remove this account?')) {
+      const updated = accounts.filter((a) => a.id !== id);
+      onAccountsChange(updated);
+      if (selectedAccountFilter === id.toString()) {
+        onSelectAccountFilter('all');
+      }
+    }
   };
 
-  const connectedCount = accountList.filter((a) => a.isConnected).length;
+  const accountList = accounts || [];
+  const activeCount = accountList.filter((a) => a.isConnected).length;
+  const totalTokens = accountList.reduce((acc, a) => acc + (a.total_tokens || 0), 0);
+  const totalQuota = accountList.reduce((acc, a) => acc + (a.quota_tokens || 10_000_000), 0);
+  const consolidatedPercent = totalQuota > 0 ? Math.round((totalTokens / totalQuota) * 100) : 0;
 
   return (
     <div className="accounts-hub-container">
-      {/* 100% Cloud-Only Architecture Banner */}
-      <div className="cloud-architecture-card glass-panel">
-        <div className="cloud-card-left">
-          <div className="cloud-icon-circle">
-            <Cloud size={24} className="text-neon" />
+      {/* Top Banner & Quick Controls */}
+      <div className="accounts-header-card glass-panel">
+        <div className="accounts-header-left">
+          <div className="accounts-icon-badge">
+            <Users size={24} className="text-neon" />
           </div>
           <div>
-            <div className="cloud-badge-row">
-              <span className="badge badge-neon">☁️ 100% Cloud-Native</span>
-              <span className="badge badge-gemini-flash">Netlify Serverless Backend</span>
-              <span className="badge badge-claude">Zero Local PC Compute</span>
-            </div>
-            <h2 className="cloud-card-title">Google Accounts Direct Cloud Hub</h2>
-            <p className="cloud-card-desc">
-              Connect your <strong>7 Google accounts</strong> directly in the cloud. Netlify Functions query Google's APIs 24/7 so you can check your token matrix from your phone or anywhere while your PC is powered off.
+            <h2 className="accounts-title">Connected AI Accounts Hub</h2>
+            <p className="accounts-subtitle">
+              Manage multi-account Google OAuth tokens, Gemini API keys, and pooled quota limits.
             </p>
           </div>
         </div>
 
-        <div className="cloud-card-right">
-          <button
-            className="btn-primary"
-            onClick={handleFetchLiveUsage}
-            disabled={isFetchingCloud}
-          >
-            <RefreshCw size={14} className={isFetchingCloud ? 'spin-anim' : ''} />
-            <span>{isFetchingCloud ? 'Querying Cloud APIs...' : 'Fetch Live Cloud Quota'}</span>
-          </button>
-
-          <button
-            className="btn-secondary"
-            onClick={() => setShowConfigModal(true)}
-            title="Configure Google OAuth Client Credentials"
-          >
-            <Settings size={14} />
-            <span>OAuth Config</span>
+        <div className="accounts-header-actions">
+          <button className="btn-primary" onClick={handleOpenConnectModal}>
+            <Plus size={16} />
+            <span>+ Connect New Account</span>
           </button>
         </div>
       </div>
 
-      {cloudSuccessMsg && (
-        <div className="status-banner banner-success">
+      {/* Success Notification Banner */}
+      {successBanner && (
+        <div className="status-banner banner-success" style={{ marginBottom: '16px' }}>
           <CheckCircle2 size={16} />
-          <span>{cloudSuccessMsg}</span>
+          <span>{successBanner}</span>
         </div>
       )}
 
-      {/* Accounts Control Header */}
-      <div className="accounts-advisory-card glass-panel">
-        <div className="advisory-left">
-          <div className="advisory-icon-ring">
-            <Users size={22} className="text-neon" />
-          </div>
-          <div>
-            <h3 className="advisory-title">
-              {accountList.length} Cloud Account Slots ({connectedCount} Connected via Google)
-            </h3>
-            <p className="advisory-desc">
-              Currently Active Cloud Account:{' '}
-              <strong className="text-neon">
-                {accountList.find((a) => a.id.toString() === activeAccountOnCloud)?.email ||
-                  `Account #${activeAccountOnCloud}`}
-              </strong>
-            </p>
+      {/* Consolidated Metrics Bar */}
+      <div className="accounts-metrics-row">
+        <div className="account-metric-card glass-panel">
+          <span className="metric-label">Linked Accounts</span>
+          <div className="metric-value-row">
+            <span className="metric-number">{accountList.length}</span>
+            <span className="metric-badge badge-neon">{activeCount} Verified Online</span>
           </div>
         </div>
 
-        <div className="advisory-right">
-          <button className="add-account-btn" onClick={handleAddAccount}>
-            <Plus size={15} />
-            <span>Add Account Slot</span>
-          </button>
+        <div className="account-metric-card glass-panel">
+          <span className="metric-label">Consolidated Quota Pool</span>
+          <div className="metric-value-row">
+            <span className="metric-number">
+              {(totalQuota / 1_000_000).toFixed(1)}M
+            </span>
+            <span className="metric-unit">Tokens</span>
+          </div>
+        </div>
+
+        <div className="account-metric-card glass-panel">
+          <span className="metric-label">Total Pool Consumption</span>
+          <div className="metric-value-row">
+            <span className="metric-number">{consolidatedPercent}%</span>
+            <span className="metric-subtext">{totalTokens.toLocaleString()} used</span>
+          </div>
         </div>
       </div>
 
-      {/* 7 Accounts Grid */}
-      <div className="accounts-cards-grid">
-        {accountList.map((acc) => {
-          const isCurrent = acc.id.toString() === activeAccountOnCloud;
-
-          return (
-            <div
-              key={acc.id}
-              className={`account-card glass-panel ${isCurrent ? 'card-device-active' : ''}`}
+      {/* Accounts List Section */}
+      <div className="accounts-grid-section">
+        <div className="accounts-grid-header">
+          <h3>Active Account Nodes ({accountList.length})</h3>
+          <div className="accounts-filter-pill-group">
+            <button
+              className={`account-filter-btn ${selectedAccountFilter === 'all' ? 'active' : ''}`}
+              onClick={() => onSelectAccountFilter('all')}
             >
-              <div className="account-card-header">
-                {acc.avatar ? (
-                  <img src={acc.avatar} alt="Avatar" className="google-user-avatar" />
-                ) : (
-                  <div className="account-avatar">
-                    <span>#{acc.id}</span>
+              All Accounts (Consolidated)
+            </button>
+            {accountList.map((a) => (
+              <button
+                key={a.id}
+                className={`account-filter-btn ${
+                  selectedAccountFilter === a.id.toString() ? 'active' : ''
+                }`}
+                onClick={() => onSelectAccountFilter(a.id.toString())}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Empty State when 0 accounts */}
+        {accountList.length === 0 ? (
+          <div className="accounts-empty-card glass-panel">
+            <div className="empty-icon-wrap">
+              <Cloud size={48} className="text-secondary" />
+            </div>
+            <h3>No Accounts Linked Yet</h3>
+            <p>
+              Connect your Google Cloud OAuth account or Google Gemini API Key to start tracking
+              tokens in 2D and 3D heatmaps.
+            </p>
+            <button className="btn-primary" onClick={handleOpenConnectModal}>
+              <Plus size={16} />
+              <span>Connect Your First Account</span>
+            </button>
+          </div>
+        ) : (
+          <div className="accounts-cards-grid">
+            {accountList.map((acc) => {
+              const isSelected = selectedAccountFilter === acc.id.toString();
+              const isFailed = acc.status === 'Connection Failed' || !acc.isConnected;
+
+              return (
+                <div
+                  key={acc.id}
+                  className={`account-slot-card glass-panel ${isSelected ? 'selected' : ''} ${
+                    isFailed ? 'failed-card' : ''
+                  }`}
+                >
+                  <div className="card-top-bar">
+                    <div className="card-identity">
+                      <div className="account-avatar">
+                        {acc.avatar ? (
+                          <img src={acc.avatar} alt={acc.name} />
+                        ) : (
+                          <div className="avatar-placeholder">
+                            {acc.name ? acc.name.charAt(0).toUpperCase() : '#'}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="card-acc-name">{acc.name}</h4>
+                        <span className="card-acc-email">{acc.email || 'No email associated'}</span>
+                      </div>
+                    </div>
+
+                    <div className="card-status-pill">
+                      {acc.isConnected ? (
+                        <span className="badge badge-healthy">
+                          <CheckCircle2 size={12} />
+                          <span>Verified Online</span>
+                        </span>
+                      ) : (
+                        <span className="badge badge-danger">
+                          <ShieldAlert size={12} />
+                          <span>Failed / Attention</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                <div className="account-header-info">
-                  <h3 className="account-name">{acc.name}</h3>
-                  <span className="account-email-tag">
-                    {acc.email || 'Not connected to Google'}
-                  </span>
-                </div>
-
-                <div className="account-status-badge">
-                  {acc.isConnected ? (
-                    <span className="badge badge-healthy">
-                      <CheckCircle2 size={11} /> Google Verified
-                    </span>
-                  ) : (
-                    <span className="badge badge-warning">
-                      <Lock size={11} /> Unlinked
-                    </span>
+                  {/* Diagnostic Alert Box on Failed Accounts */}
+                  {isFailed && acc.errorDetails && (
+                    <div className="card-error-snippet">
+                      <div className="error-snippet-header">
+                        <AlertTriangle size={13} className="text-danger" />
+                        <span>HTTP {acc.errorDetails.httpStatus} • {acc.errorDetails.errorCode}</span>
+                      </div>
+                      <p className="error-snippet-msg">{acc.errorDetails.rawMessage}</p>
+                      <button
+                        className="btn-snippet-diag"
+                        onClick={() => setActiveDiagnostic(acc.errorDetails)}
+                      >
+                        🔍 View Specific Diagnostic Report & Fix
+                      </button>
+                    </div>
                   )}
-                </div>
-              </div>
 
-              {/* Account Connect Button or Status */}
-              <div className="account-connect-section">
-                {!acc.isConnected ? (
-                  <button
-                    className="google-sign-in-btn"
-                    onClick={() => handleOpenConnect(acc.id)}
-                  >
-                    <svg className="google-icon" viewBox="0 0 24 24" width="16" height="16">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                    </svg>
-                    <span>Connect Google Account</span>
-                  </button>
-                ) : (
-                  <div className="google-connected-bar">
-                    <span className="connected-text text-neon">
-                      <CheckCircle2 size={13} /> Active Cloud Link
-                    </span>
+                  {/* Quota Progress */}
+                  <div className="card-quota-area">
+                    <div className="quota-labels">
+                      <span>Token Usage</span>
+                      <span>
+                        {(acc.total_tokens || 0).toLocaleString()} /{' '}
+                        {((acc.quota_tokens || 10_000_000) / 1_000_000).toFixed(0)}M ({acc.percent_used || 0}%)
+                      </span>
+                    </div>
+                    <div className="quota-bar-track">
+                      <div
+                        className="quota-bar-fill"
+                        style={{
+                          width: `${Math.min(acc.percent_used || 0, 100)}%`,
+                          background:
+                            (acc.percent_used || 0) > 85
+                              ? '#ff4d4d'
+                              : (acc.percent_used || 0) > 60
+                              ? '#ffaa00'
+                              : '#00ff88',
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Verified Metadata */}
+                  {acc.isConnected && acc.available_models && (
+                    <div className="card-models-preview">
+                      <span className="models-tag">
+                        ⚡ {acc.available_models.length} Gemini Models Active
+                      </span>
+                      {acc.latency_ms && (
+                        <span className="models-tag">Latency: {acc.latency_ms}ms</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Card Actions */}
+                  <div className="card-footer-actions">
                     <button
-                      className="disconnect-link"
-                      onClick={() => handleDisconnect(acc.id)}
+                      className="card-action-btn"
+                      onClick={() => handleTestPingAccount(acc)}
+                      disabled={testingAccId === acc.id}
+                      title="Run live ping test against Google servers"
                     >
-                      Disconnect
+                      <RefreshCw
+                        size={13}
+                        className={testingAccId === acc.id ? 'spin-anim' : ''}
+                      />
+                      <span>{testingAccId === acc.id ? 'Testing...' : 'Test Ping'}</span>
+                    </button>
+
+                    <button
+                      className={`card-action-btn ${isSelected ? 'active-filter' : ''}`}
+                      onClick={() => onSelectAccountFilter(acc.id.toString())}
+                    >
+                      <Activity size={13} />
+                      <span>{isSelected ? 'Active Filter' : 'Filter View'}</span>
+                    </button>
+
+                    <button
+                      className="card-action-btn btn-danger-action"
+                      onClick={() => handleRemoveAccount(acc.id)}
+                      title="Unlink and remove account"
+                    >
+                      <Trash2 size={13} />
                     </button>
                   </div>
-                )}
-              </div>
-
-              {/* Progress Gauge */}
-              <div className="account-gauge-area">
-                <div className="gauge-metric-row">
-                  <span className="gauge-label">Cycle Quota:</span>
-                  <strong className="gauge-val text-neon">
-                    {((acc.quota_tokens || 10_000_000) / 1_000_000).toFixed(0)}M tokens
-                  </strong>
                 </div>
-
-                <div className="progress-track">
-                  <div
-                    className="progress-fill fill-neon"
-                    style={{ width: `${acc.percent_used || 5}%` }}
-                  ></div>
-                </div>
-
-                <div className="gauge-sub-row">
-                  <span>24/7 Netlify Cloud Monitor</span>
-                  <span className="text-cyan">Auto-cycling</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="account-action-buttons-row">
-                {!isCurrent && (
-                  <button
-                    className="set-active-btn"
-                    onClick={() => {
-                      setActiveAccountOnCloud(acc.id.toString());
-                      localStorage.setItem('antigravity_active_account_id', acc.id.toString());
-                    }}
-                  >
-                    <CheckCircle2 size={13} />
-                    <span>Set Active Account</span>
-                  </button>
-                )}
-
-                <button
-                  className="account-select-btn"
-                  onClick={() => onSelectAccountFilter(acc.id.toString())}
-                >
-                  <span>Filter Matrix</span>
-                  <ArrowRight size={13} />
-                </button>
-
-                {accountList.length > 1 && (
-                  <button
-                    className="delete-acc-btn"
-                    onClick={() => handleDeleteAccount(acc.id)}
-                    title="Remove this slot"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Google OAuth Connection Modal */}
-      {isOAuthModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsOAuthModalOpen(false)}>
-          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
+      {/* Connect Account Modal */}
+      {isConnectModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsConnectModalOpen(false)}>
+          <div
+            className="modal-content glass-panel modal-wide"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <div className="modal-title-wrapper">
-                <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-                <h3 className="modal-title">Sign In with Google (Account #{connectingAccId})</h3>
+                <Cloud className="text-neon" size={22} />
+                <div>
+                  <h3 className="modal-title">Connect AI & Cloud Account</h3>
+                  <span className="modal-subtitle">
+                    Add another account node to pool tokens and monitor rate limits
+                  </span>
+                </div>
               </div>
-              <button className="modal-close-btn" onClick={() => setIsOAuthModalOpen(false)}>
+              <button
+                className="modal-close-btn"
+                onClick={() => setIsConnectModalOpen(false)}
+              >
                 <X size={18} />
               </button>
             </div>
 
             <div className="modal-body">
-              <p className="modal-subtitle">
-                Link this account slot directly to your Google account for 24/7 cloud quota tracking on Netlify.
-              </p>
-
-              {/* Direct Live Google Sign-in Button */}
-              <div style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  className="google-sign-in-btn"
-                  style={{ width: '100%', justifyContent: 'center', padding: '0.85rem 1.2rem', fontSize: '0.95rem' }}
-                  onClick={() => handleStartGoogleOAuth(connectingAccId)}
-                  disabled={isStartingOAuth}
-                >
-                  <svg className="google-icon" viewBox="0 0 24 24" width="18" height="18">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                  </svg>
-                  <span>{isStartingOAuth ? 'Launching Google Login...' : 'Sign In with Google (Live OAuth)'}</span>
-                </button>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.5rem' }}>
-                  Authenticates with Client ID: <code style={{ color: '#00f0ff' }}>719271873086-...</code>
-                </div>
-              </div>
-
-              {/* Redirect URI Helper Alert Box */}
-              <div style={{
-                background: 'rgba(255, 170, 0, 0.08)',
-                border: '1px solid rgba(255, 170, 0, 0.25)',
-                borderRadius: '8px',
-                padding: '0.75rem 0.9rem',
-                marginBottom: '1rem',
-                fontSize: '0.8rem',
-                textAlign: 'left'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem', color: '#ffb300', fontWeight: 600 }}>
-                  <AlertTriangle size={14} />
-                  <span>Fix "Error 400: redirect_uri_mismatch"</span>
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
-                  Google requires this exact URI saved under <strong>Authorized redirect URIs</strong> in Google Cloud Console:
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  background: 'rgba(0,0,0,0.4)',
-                  padding: '0.35rem 0.5rem',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                  <code style={{ color: '#00f0ff', fontSize: '0.75rem', wordBreak: 'break-all', flex: 1 }}>
-                    {getActiveRedirectUri()}
-                  </code>
-                  <button
-                    type="button"
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      border: 'none',
-                      color: '#fff',
-                      borderRadius: '4px',
-                      padding: '0.2rem 0.5rem',
-                      cursor: 'pointer',
-                      fontSize: '0.72rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(getActiveRedirectUri());
-                      setCopiedUri(getActiveRedirectUri());
-                      setTimeout(() => setCopiedUri(''), 3000);
-                    }}
-                  >
-                    {copiedUri === getActiveRedirectUri() ? <Check size={12} className="text-neon" /> : <Copy size={12} />}
-                    <span>{copiedUri === getActiveRedirectUri() ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-
-                {window.location.origin.includes('localhost') && (
-                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <input
-                      type="checkbox"
-                      id="forceNetlifyCb"
-                      checked={forceNetlifyCallback}
-                      onChange={(e) => setForceNetlifyCallback(e.target.checked)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <label htmlFor="forceNetlifyCb" style={{ fontSize: '0.72rem', color: '#00f0ff', cursor: 'pointer' }}>
-                      Redirect to Live Netlify site instead of localhost
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  or manually label this slot
-                </span>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-              </div>
-
-              <form onSubmit={handleCompleteGoogleSignIn}>
-                <div className="form-group">
-                  <label className="form-label">Google Account Email Address:</label>
-                  <input
-                    type="email"
-                    placeholder="e.g. user1@gmail.com"
-                    value={customEmailInput}
-                    onChange={(e) => setCustomEmailInput(e.target.value)}
-                    required
-                    className="modal-text-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Account Label / Purpose:</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Pro Account #1 (Primary)"
-                    value={customNameInput}
-                    onChange={(e) => setCustomNameInput(e.target.value)}
-                    className="modal-text-input"
-                  />
-                </div>
-
-                <div className="cloud-security-box">
-                  <ShieldCheck size={16} className="text-neon" />
-                  <span>Zero PC compute required. Netlify Functions query Google's cloud APIs directly.</span>
-                </div>
-
-                <div className="modal-footer" style={{ padding: 0 }}>
-                  <button type="submit" className="google-sign-in-btn">
-                    <span>Confirm & Connect Slot</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Google OAuth Client ID Configuration Modal */}
-      {showConfigModal && (
-        <div className="modal-backdrop" onClick={() => setShowConfigModal(false)}>
-          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title-wrapper">
-                <Settings size={20} className="text-neon" />
-                <h3 className="modal-title">Google Cloud OAuth Configuration</h3>
-              </div>
-              <button className="modal-close-btn" onClick={() => setShowConfigModal(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <p className="modal-subtitle">
-                Optional: Enter your Google Cloud OAuth Client ID to authenticate against your own Google Cloud project.
-              </p>
-
-              <div className="form-group">
-                <label className="form-label">Google Client ID:</label>
+              {/* Account Nickname */}
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label">Account Nickname / Identifier</label>
                 <input
                   type="text"
-                  placeholder="xxxx.apps.googleusercontent.com"
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
+                  value={accountNickname}
+                  onChange={(e) => setAccountNickname(e.target.value)}
+                  placeholder="e.g. Personal Google, Team Antigravity, Research GCP"
                   className="modal-text-input"
+                  required
                 />
               </div>
 
-              <div className="instruction-card">
-                <strong>How to get a free Google Client ID:</strong>
-                <ol>
-                  <li>Go to <code>console.cloud.google.com/apis/credentials</code></li>
-                  <li>Click <strong>Create Credentials &gt; OAuth client ID</strong></li>
-                  <li>Set Authorized Redirect URI to: <code>https://&lt;your-app&gt;.netlify.app/auth/callback</code></li>
-                </ol>
+              {/* Protocol Tabs */}
+              <div className="saas-nav-tabs" style={{ marginBottom: '18px' }}>
+                <button
+                  type="button"
+                  className={`saas-nav-btn ${connectionType === 'oauth' ? 'active' : ''}`}
+                  onClick={() => setConnectionType('oauth')}
+                >
+                  <Globe size={15} />
+                  <span>Google OAuth 2.0 (Official)</span>
+                </button>
+                <button
+                  type="button"
+                  className={`saas-nav-btn ${connectionType === 'apikey' ? 'active' : ''}`}
+                  onClick={() => setConnectionType('apikey')}
+                >
+                  <Key size={15} />
+                  <span>Google Gemini API Key</span>
+                </button>
               </div>
+
+              {/* Protocol 1: Official Google OAuth */}
+              {connectionType === 'oauth' && (
+                <div className="connect-tab-panel">
+                  <p className="tab-explainer-text">
+                    Authorizes this workspace directly with your Google Cloud Account. Exchanges
+                    code via serverless OAuth 2.0 with zero local machine dependencies.
+                  </p>
+
+                  <div className="oauth-init-box">
+                    <button
+                      type="button"
+                      className="auth-google-btn"
+                      onClick={handleInitiateGoogleOAuth}
+                      disabled={isConnecting}
+                    >
+                      <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                        />
+                      </svg>
+                      <span>
+                        {isConnecting
+                          ? 'Redirecting to Google Accounts...'
+                          : `Authorize "${accountNickname}" with Google`}
+                      </span>
+                    </button>
+                    <span className="oauth-note">
+                      Client ID: <code>719271873086-kpujid5noaftp00cc3lgf50fns212g3m...</code>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Protocol 2: Google Gemini API Key */}
+              {connectionType === 'apikey' && (
+                <form onSubmit={handleVerifyAndConnectApiKey} className="connect-tab-panel">
+                  <p className="tab-explainer-text">
+                    Enter a Google Gemini API Key from Google AI Studio. The system tests live connectivity
+                    against Google endpoints before adding the account. If validation fails, exact
+                    reasons and diagnostic steps are shown.
+                  </p>
+
+                  <div className="form-group" style={{ marginBottom: '14px' }}>
+                    <label className="form-label">Google Gemini API Key</label>
+                    <input
+                      type="password"
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="modal-text-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '18px' }}>
+                    <label className="form-label">Monthly Token Quota Limit</label>
+                    <select
+                      value={quotaInput}
+                      onChange={(e) => setQuotaInput(e.target.value)}
+                      className="filter-select"
+                      style={{ width: '100%' }}
+                    >
+                      <option value="5000000">5,000,000 Tokens (Starter Free Tier)</option>
+                      <option value="10000000">10,000,000 Tokens (Standard Pro Tier)</option>
+                      <option value="50000000">50,000,000 Tokens (Team Enterprise Tier)</option>
+                      <option value="100000000">100,000,000 Tokens (Unlimited Cloud)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isConnecting}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>
+                      {isConnecting
+                        ? 'Verifying with Google Servers...'
+                        : 'Test Connection & Link Account'}
+                    </span>
+                  </button>
+                </form>
+              )}
             </div>
 
             <div className="modal-footer">
               <button
-                className="btn-primary"
-                onClick={() => {
-                  localStorage.setItem('antigravity_google_client_id', clientId);
-                  setShowConfigModal(false);
-                }}
+                type="button"
+                className="btn-secondary"
+                onClick={() => setIsConnectModalOpen(false)}
               >
-                Save Configuration
+                Cancel
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Error Diagnostic Modal */}
+      {activeDiagnostic && (
+        <ErrorDiagnosticModal
+          errorData={activeDiagnostic}
+          onClose={() => setActiveDiagnostic(null)}
+          onRetry={() => {
+            setActiveDiagnostic(null);
+            setIsConnectModalOpen(true);
+          }}
+        />
       )}
     </div>
   );
