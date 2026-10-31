@@ -1,29 +1,29 @@
 {
   "metadata": {
-    "generated_at": "2026-10-21T18:49:04.413062",
+    "generated_at": "2026-10-31T12:09:24.457672",
     "target_user": "Daksh",
     "app_title": "Antigravity AI Token Matrix",
     "total_accounts": 0
   },
   "summary": {
-    "total_tokens": 26241208,
-    "total_input_tokens": 23414921,
-    "total_output_tokens": 2826287,
-    "total_cached_tokens": 1174772,
-    "total_cost_usd": 41.44,
-    "total_calls": 2325,
-    "total_sessions": 12,
-    "active_days": 12,
-    "current_streak": 1,
-    "longest_streak": 4,
-    "peak_hour": "2 PM",
-    "peak_hour_num": 14,
-    "favorite_model": "gemini-3.8-flash-medium",
-    "little_prince_multiplier": 1193,
+    "total_tokens": 73842787,
+    "total_input_tokens": 61728510,
+    "total_output_tokens": 12114277,
+    "total_cached_tokens": 5039754,
+    "total_cost_usd": 53.23,
+    "total_calls": 9390,
+    "total_sessions": 23,
+    "active_days": 24,
+    "current_streak": 11,
+    "longest_streak": 11,
+    "peak_hour": "7 PM",
+    "peak_hour_num": 19,
+    "favorite_model": "gemini-3.8-flash-high",
+    "little_prince_multiplier": 3356,
     "max_day": {
-      "date": "2026-10-10",
-      "tokens": 5789892,
-      "cost": 26.5
+      "date": "2026-10-27",
+      "tokens": 14687553,
+      "cost": 3.94
     },
     "min_day": {
       "date": "2026-10-05",
@@ -32,125 +32,6 @@
     }
   },
   "calendar_days": [
-    {
-      "date": "2025-10-19",
-      "day_of_week": 6,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
-    {
-      "date": "2025-10-20",
-      "day_of_week": 0,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
-    {
-      "date": "2025-10-21",
-      "day_of_week": 1,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
-    {
-      "date": "2025-10-22",
-      "day_of_week": 2,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
-    {
-      "date": "2025-10-23",
-      "day_of_week": 3,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
-    {
-      "date": "2025-10-24",
-      "day_of_week": 4,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
-    {
-      "date": "2025-10-25",
-      "day_of_week": 5,
-      "month": "Oct",
-      "year": 2025,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
-      "accounts": {}
-    },
     {
       "date": "2025-10-26",
       "day_of_week": 6,
@@ -5868,16 +5749,25 @@
       "day_of_week": 6,
       "month": "Sep",
       "year": 2026,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
+      "has_data": true,
+      "level": 1,
+      "total_tokens": 454474,
+      "input_tokens": 392528,
+      "output_tokens": 61946,
+      "cached_tokens": 14522,
+      "cost_usd": 0.1,
+      "calls_count": 47,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 392528,
+          "out": 61946,
+          "cache": 14522,
+          "total": 454474,
+          "calls": 47,
+          "cost": 0.09690000000000001
+        }
+      },
       "accounts": {}
     },
     {
@@ -5887,14 +5777,22 @@
       "year": 2026,
       "has_data": true,
       "level": 3,
-      "total_tokens": 2302513,
-      "input_tokens": 2165709,
-      "output_tokens": 136804,
-      "cached_tokens": 42568,
-      "cost_usd": 0.2,
-      "calls_count": 104,
+      "total_tokens": 4389100,
+      "input_tokens": 4029554,
+      "output_tokens": 359546,
+      "cached_tokens": 96470,
+      "cost_usd": 0.62,
+      "calls_count": 273,
       "top_model": "gemini-3.6-flash-low",
       "models": {
+        "gemini-3.8-flash-high": {
+          "in": 1863845,
+          "out": 222742,
+          "cache": 53902,
+          "total": 2086587,
+          "calls": 169,
+          "cost": 0.4154
+        },
         "gemini-3.6-flash-low": {
           "in": 2165709,
           "out": 136804,
@@ -5904,15 +5802,7 @@
           "cost": 0.20450000000000004
         }
       },
-      "accounts": {
-        "2": {
-          "in": 2165709,
-          "out": 136804,
-          "total": 2302513,
-          "calls": 104,
-          "cost": 0.20450000000000004
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-09-29",
@@ -5938,15 +5828,7 @@
           "cost": 0.16140000000000002
         }
       },
-      "accounts": {
-        "2": {
-          "in": 1639492,
-          "out": 126245,
-          "total": 1765737,
-          "calls": 117,
-          "cost": 0.16140000000000002
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-09-30",
@@ -5980,22 +5862,7 @@
           "cost": 2.7417000000000007
         }
       },
-      "accounts": {
-        "2": {
-          "in": 573029,
-          "out": 74763,
-          "total": 647792,
-          "calls": 72,
-          "cost": 0.06589999999999999
-        },
-        "5": {
-          "in": 1699086,
-          "out": 121157,
-          "total": 1820243,
-          "calls": 117,
-          "cost": 2.7417000000000007
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-01",
@@ -6021,15 +5888,7 @@
           "cost": 1.2976
         }
       },
-      "accounts": {
-        "4": {
-          "in": 863894,
-          "out": 42490,
-          "total": 906384,
-          "calls": 41,
-          "cost": 1.2976
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-02",
@@ -6106,15 +5965,7 @@
           "cost": 0.20229999999999998
         }
       },
-      "accounts": {
-        "1": {
-          "in": 115178,
-          "out": 11410,
-          "total": 126588,
-          "calls": 11,
-          "cost": 0.20229999999999998
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-06",
@@ -6174,15 +6025,7 @@
           "cost": 0.7610999999999999
         }
       },
-      "accounts": {
-        "4": {
-          "in": 509104,
-          "out": 23842,
-          "total": 532946,
-          "calls": 23,
-          "cost": 0.7610999999999999
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-09",
@@ -6208,22 +6051,7 @@
           "cost": 5.860099999999999
         }
       },
-      "accounts": {
-        "1": {
-          "in": 808602,
-          "out": 55960,
-          "total": 864562,
-          "calls": 54,
-          "cost": 3.329700000000001
-        },
-        "2": {
-          "in": 547951,
-          "out": 57989,
-          "total": 605940,
-          "calls": 56,
-          "cost": 2.5303999999999998
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-10",
@@ -6249,15 +6077,7 @@
           "cost": 26.50309999999999
         }
       },
-      "accounts": {
-        "1": {
-          "in": 5041181,
-          "out": 748711,
-          "total": 5789892,
-          "calls": 626,
-          "cost": 26.50309999999999
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-11",
@@ -6359,29 +6179,7 @@
           "cost": 2.1275000000000004
         }
       },
-      "accounts": {
-        "3": {
-          "in": 2763188,
-          "out": 347057,
-          "total": 3110245,
-          "calls": 270,
-          "cost": 0.4211000000000019
-        },
-        "5": {
-          "in": 243775,
-          "out": 51780,
-          "total": 295555,
-          "calls": 50,
-          "cost": 1.5311000000000001
-        },
-        "6": {
-          "in": 104320,
-          "out": 18645,
-          "total": 122965,
-          "calls": 18,
-          "cost": 0.5964
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-16",
@@ -6394,35 +6192,28 @@
       "input_tokens": 4021807,
       "output_tokens": 734414,
       "cached_tokens": 364668,
-      "cost_usd": 0.71,
+      "cost_usd": 1.02,
       "calls_count": 557,
-      "top_model": "gemini-3.8-flash-medium",
+      "top_model": "gemini-3.8-flash-high",
       "models": {
         "gemini-3.8-flash-medium": {
-          "in": 4021807,
-          "out": 734414,
-          "cache": 364668,
-          "total": 4756221,
-          "calls": 557,
-          "cost": 0.707600000000006
-        }
-      },
-      "accounts": {
-        "3": {
           "in": 558345,
           "out": 68588,
+          "cache": 40908,
           "total": 626933,
           "calls": 52,
           "cost": 0.08429999999999992
         },
-        "7": {
+        "gemini-3.8-flash-high": {
           "in": 3463462,
           "out": 665826,
+          "cache": 323760,
           "total": 4129288,
           "calls": 505,
-          "cost": 0.6233000000000052
+          "cost": 0.9335999999999935
         }
-      }
+      },
+      "accounts": {}
     },
     {
       "date": "2026-10-17",
@@ -6446,16 +6237,25 @@
       "day_of_week": 6,
       "month": "Oct",
       "year": 2026,
-      "has_data": false,
-      "level": 0,
-      "total_tokens": 0,
-      "input_tokens": 0,
-      "output_tokens": 0,
-      "cached_tokens": 0,
-      "cost_usd": 0.0,
-      "calls_count": 0,
-      "top_model": null,
-      "models": {},
+      "has_data": true,
+      "level": 2,
+      "total_tokens": 839645,
+      "input_tokens": 701255,
+      "output_tokens": 138390,
+      "cached_tokens": 42429,
+      "cost_usd": 0.19,
+      "calls_count": 105,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 701255,
+          "out": 138390,
+          "cache": 42429,
+          "total": 839645,
+          "calls": 105,
+          "cost": 0.19040000000000012
+        }
+      },
       "accounts": {}
     },
     {
@@ -6469,28 +6269,20 @@
       "input_tokens": 1750557,
       "output_tokens": 166194,
       "cached_tokens": 49395,
-      "cost_usd": 0.24,
+      "cost_usd": 0.37,
       "calls_count": 126,
-      "top_model": "gemini-3.8-flash-medium",
+      "top_model": "gemini-3.8-flash-high",
       "models": {
-        "gemini-3.8-flash-medium": {
+        "gemini-3.8-flash-high": {
           "in": 1750557,
           "out": 166194,
           "cache": 49395,
           "total": 1916751,
           "calls": 126,
-          "cost": 0.2436999999999998
+          "cost": 0.36530000000000007
         }
       },
-      "accounts": {
-        "7": {
-          "in": 1750557,
-          "out": 166194,
-          "total": 1916751,
-          "calls": 126,
-          "cost": 0.2436999999999998
-        }
-      }
+      "accounts": {}
     },
     {
       "date": "2026-10-20",
@@ -6515,36 +6307,304 @@
       "month": "Oct",
       "year": 2026,
       "has_data": true,
-      "level": 2,
-      "total_tokens": 676874,
-      "input_tokens": 568048,
-      "output_tokens": 108826,
-      "cached_tokens": 89946,
-      "cost_usd": 0.15,
-      "calls_count": 83,
+      "level": 3,
+      "total_tokens": 2721388,
+      "input_tokens": 2208236,
+      "output_tokens": 513152,
+      "cached_tokens": 259794,
+      "cost_usd": 0.65,
+      "calls_count": 390,
       "top_model": "gemini-3.8-flash-high",
       "models": {
         "gemini-3.8-flash-high": {
-          "in": 568048,
-          "out": 108826,
-          "cache": 89946,
-          "total": 676874,
-          "calls": 83,
-          "cost": 0.15430000000000005
+          "in": 2208236,
+          "out": 513152,
+          "cache": 259794,
+          "total": 2721388,
+          "calls": 390,
+          "cost": 0.6502999999999959
         }
       },
-      "accounts": {
-        "3": {
-          "in": 568048,
-          "out": 108826,
-          "total": 676874,
-          "calls": 83,
-          "cost": 0.15430000000000005
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-22",
+      "day_of_week": 3,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 3,
+      "total_tokens": 2783414,
+      "input_tokens": 2206981,
+      "output_tokens": 576433,
+      "cached_tokens": 241165,
+      "cost_usd": 0.69,
+      "calls_count": 438,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 2206981,
+          "out": 576433,
+          "cache": 241165,
+          "total": 2783414,
+          "calls": 438,
+          "cost": 0.6876999999999952
         }
-      }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-23",
+      "day_of_week": 4,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 3,
+      "total_tokens": 4529029,
+      "input_tokens": 3784659,
+      "output_tokens": 744370,
+      "cached_tokens": 338249,
+      "cost_usd": 1.03,
+      "calls_count": 565,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 3784659,
+          "out": 744370,
+          "cache": 338249,
+          "total": 4529029,
+          "calls": 565,
+          "cost": 1.0290999999999952
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-24",
+      "day_of_week": 5,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 3,
+      "total_tokens": 4498636,
+      "input_tokens": 3790420,
+      "output_tokens": 708216,
+      "cached_tokens": 278886,
+      "cost_usd": 0.97,
+      "calls_count": 538,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-medium": {
+          "in": 313354,
+          "out": 90674,
+          "cache": 34771,
+          "total": 404028,
+          "calls": 69,
+          "cost": 0.06879999999999997
+        },
+        "gemini-3.8-flash-high": {
+          "in": 3477066,
+          "out": 617542,
+          "cache": 244115,
+          "total": 4094608,
+          "calls": 469,
+          "cost": 0.9018999999999963
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-25",
+      "day_of_week": 6,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 2,
+      "total_tokens": 1550807,
+      "input_tokens": 1398351,
+      "output_tokens": 152456,
+      "cached_tokens": 148159,
+      "cost_usd": 0.21,
+      "calls_count": 124,
+      "top_model": "gemini-3.8-flash-medium",
+      "models": {
+        "gemini-3.8-flash-medium": {
+          "in": 1398351,
+          "out": 152456,
+          "cache": 148159,
+          "total": 1550807,
+          "calls": 124,
+          "cost": 0.2054999999999997
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-26",
+      "day_of_week": 0,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 3,
+      "total_tokens": 2815708,
+      "input_tokens": 2296671,
+      "output_tokens": 519037,
+      "cached_tokens": 154188,
+      "cost_usd": 0.66,
+      "calls_count": 394,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 2296671,
+          "out": 519037,
+          "cache": 154188,
+          "total": 2815708,
+          "calls": 394,
+          "cost": 0.6630999999999961
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-27",
+      "day_of_week": 1,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 5,
+      "total_tokens": 14687553,
+      "input_tokens": 10952141,
+      "output_tokens": 3735412,
+      "cached_tokens": 1447394,
+      "cost_usd": 3.94,
+      "calls_count": 2841,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 10952141,
+          "out": 3735412,
+          "cache": 1447394,
+          "total": 14687553,
+          "calls": 2841,
+          "cost": 3.9402999999999846
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-28",
+      "day_of_week": 2,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 1,
+      "total_tokens": 229659,
+      "input_tokens": 218065,
+      "output_tokens": 11594,
+      "cached_tokens": 13853,
+      "cost_usd": 0.04,
+      "calls_count": 9,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 218065,
+          "out": 11594,
+          "cache": 13853,
+          "total": 229659,
+          "calls": 9,
+          "cost": 0.040400000000000005
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-29",
+      "day_of_week": 3,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 4,
+      "total_tokens": 5300957,
+      "input_tokens": 4309071,
+      "output_tokens": 991886,
+      "cached_tokens": 516721,
+      "cost_usd": 1.26,
+      "calls_count": 753,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 4309071,
+          "out": 991886,
+          "cache": 516721,
+          "total": 5300957,
+          "calls": 753,
+          "cost": 1.2625000000000095
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-30",
+      "day_of_week": 4,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 3,
+      "total_tokens": 3451848,
+      "input_tokens": 2801024,
+      "output_tokens": 650824,
+      "cached_tokens": 265179,
+      "cost_usd": 0.82,
+      "calls_count": 494,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 2801024,
+          "out": 650824,
+          "cache": 265179,
+          "total": 3451848,
+          "calls": 494,
+          "cost": 0.821199999999994
+        }
+      },
+      "accounts": {}
+    },
+    {
+      "date": "2026-10-31",
+      "day_of_week": 5,
+      "month": "Oct",
+      "year": 2026,
+      "has_data": true,
+      "level": 3,
+      "total_tokens": 2328748,
+      "input_tokens": 1958390,
+      "output_tokens": 370358,
+      "cached_tokens": 180487,
+      "cost_usd": 0.52,
+      "calls_count": 281,
+      "top_model": "gemini-3.8-flash-high",
+      "models": {
+        "gemini-3.8-flash-high": {
+          "in": 1958390,
+          "out": 370358,
+          "cache": 180487,
+          "total": 2328748,
+          "calls": 281,
+          "cost": 0.5232999999999989
+        }
+      },
+      "accounts": {}
     }
   ],
   "models": {
+    "gemini-3.8-flash-high": {
+      "total": 52369657,
+      "in": 42383951,
+      "out": 9985706,
+      "cache": 4145153,
+      "calls": 7586,
+      "cost": 12.521400000000797
+    },
     "gemini-3.1-pro-low": {
       "total": 3386161,
       "in": 3187262,
@@ -6562,12 +6622,12 @@
       "cost": 0.4318000000000006
     },
     "gemini-3.8-flash-medium": {
-      "total": 9783217,
-      "in": 8535552,
-      "out": 1247665,
-      "cache": 579750,
-      "calls": 953,
-      "cost": 1.3723999999999867
+      "total": 5692013,
+      "in": 5033238,
+      "out": 658775,
+      "cache": 389525,
+      "calls": 515,
+      "cost": 0.7797000000000053
     },
     "claude-sonnet-4-6": {
       "total": 7678914,
@@ -6576,63 +6636,101 @@
       "cache": 343138,
       "calls": 804,
       "cost": 34.49069999999997
-    },
-    "gemini-3.8-flash-high": {
-      "total": 676874,
-      "in": 568048,
-      "out": 108826,
-      "cache": 89946,
-      "calls": 83,
-      "cost": 0.15430000000000005
     }
   },
   "accounts": [],
   "monthly": {
     "2026-09": {
-      "total": 6536285,
-      "in": 6077316,
-      "out": 458969,
-      "cache": 122259,
-      "calls": 410,
-      "cost": 3.17
+      "total": 9077346,
+      "in": 8333689,
+      "out": 743657,
+      "cache": 190683,
+      "calls": 626,
+      "cost": 3.69
     },
     "2026-10": {
-      "total": 19704923,
-      "in": 17337605,
-      "out": 2367318,
-      "cache": 1052513,
-      "calls": 1915,
-      "cost": 38.27
+      "total": 64765441,
+      "in": 53394821,
+      "out": 11370620,
+      "cache": 4849071,
+      "calls": 8764,
+      "cost": 49.53999999999999
     }
   },
   "hourly_distribution": {
-    "17": 1023873,
-    "16": 2213099,
-    "18": 1999930,
-    "22": 1301898,
-    "23": 1650951,
-    "0": 2010572,
-    "12": 2056496,
-    "13": 1689499,
-    "14": 2682914,
-    "15": 1826441,
-    "19": 1334823,
-    "20": 1272179,
+    "10": 2655236,
+    "22": 5598332,
+    "23": 2851831,
+    "0": 2403429,
+    "1": 2427670,
+    "15": 4014004,
+    "16": 4148792,
+    "9": 1281857,
+    "17": 2995214,
+    "18": 5020385,
+    "19": 7306969,
+    "20": 7031699,
+    "21": 5965688,
+    "11": 5217564,
+    "12": 5782949,
+    "13": 4036314,
+    "14": 4027452,
     "6": 626933,
-    "9": 295555,
-    "10": 268895,
-    "11": 851574,
-    "1": 1720242,
     "2": 68512,
-    "7": 381957,
-    "21": 964865
+    "7": 381957
   },
   "conversations": [
     {
+      "cid": "033c0842-151b-4186-bd01-c8ddeafc4ea1",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 41581,
+      "input_tokens": 38945,
+      "output_tokens": 2636,
+      "cached_tokens": 675,
+      "cost_usd": 0.007,
+      "calls_count": 2,
+      "first_seen": 1793250984,
+      "last_seen": 1793250992
+    },
+    {
+      "cid": "e3eca70f-3118-40c3-a96a-30f36dfbdc30",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 1554759,
+      "input_tokens": 1417687,
+      "output_tokens": 137072,
+      "cached_tokens": 30328,
+      "cost_usd": 0.296,
+      "calls_count": 104,
+      "first_seen": 1790529829,
+      "last_seen": 1790538370
+    },
+    {
+      "cid": "ed4191a7-9df9-4beb-a94a-da0108cc644e",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 839645,
+      "input_tokens": 701255,
+      "output_tokens": 138390,
+      "cached_tokens": 42429,
+      "cost_usd": 0.19,
+      "calls_count": 105,
+      "first_seen": 1792316955,
+      "last_seen": 1792321282
+    },
+    {
+      "cid": "f15e94e7-c7be-4f14-9553-658ff14055af",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 986302,
+      "input_tokens": 838686,
+      "output_tokens": 147616,
+      "cached_tokens": 38096,
+      "cost_usd": 0.216,
+      "calls_count": 112,
+      "first_seen": 1790568967,
+      "last_seen": 1790569658
+    },
+    {
       "cid": "060ee2a9-7c65-4e25-b26e-d2a0f45c6695",
       "model": "gemini-3.1-pro-low",
-      "account_id": 1,
-      "account_name": "Account #1",
       "total_tokens": 126588,
       "input_tokens": 115178,
       "output_tokens": 11410,
@@ -6645,8 +6743,6 @@
     {
       "cid": "09629a48-cca1-42b5-9ce5-aa4b275e5720",
       "model": "gemini-3.6-flash-low",
-      "account_id": 2,
-      "account_name": "Account #2",
       "total_tokens": 4716042,
       "input_tokens": 4378230,
       "output_tokens": 337812,
@@ -6657,10 +6753,32 @@
       "last_seen": 1790709206
     },
     {
+      "cid": "28c97ddf-df1a-429c-abf2-322c3fd193ca",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 3567929,
+      "input_tokens": 2899971,
+      "output_tokens": 667958,
+      "cached_tokens": 272194,
+      "cost_usd": 0.847,
+      "calls_count": 507,
+      "first_seen": 1793368289,
+      "last_seen": 1793423398
+    },
+    {
+      "cid": "3121228e-4cb7-4b04-a51a-3b4b6b2f9a74",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 6708485,
+      "input_tokens": 5287936,
+      "output_tokens": 1420549,
+      "cached_tokens": 604866,
+      "cost_usd": 1.672,
+      "calls_count": 1078,
+      "first_seen": 1793018095,
+      "last_seen": 1793092169
+    },
+    {
       "cid": "4673cc1e-c69f-45f2-8327-e59d4a9532d2",
       "model": "gemini-3.8-flash-medium",
-      "account_id": 3,
-      "account_name": "Account #3",
       "total_tokens": 3737178,
       "input_tokens": 3321533,
       "output_tokens": 415645,
@@ -6671,10 +6789,32 @@
       "last_seen": 1792114133
     },
     {
+      "cid": "48a6e798-2e95-486a-bd9c-f968f7a5a979",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 5259376,
+      "input_tokens": 4270126,
+      "output_tokens": 989250,
+      "cached_tokens": 516046,
+      "cost_usd": 1.255,
+      "calls_count": 751,
+      "first_seen": 1793276250,
+      "last_seen": 1793295394
+    },
+    {
+      "cid": "5a7ae420-313b-4685-bc5c-d0d679ab4bad",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 229659,
+      "input_tokens": 218065,
+      "output_tokens": 11594,
+      "cached_tokens": 13853,
+      "cost_usd": 0.04,
+      "calls_count": 9,
+      "first_seen": 1793195846,
+      "last_seen": 1793199363
+    },
+    {
       "cid": "729b9f57-460b-46ec-b2de-dd83f4ff5bd1",
       "model": "gemini-3.1-pro-low",
-      "account_id": 4,
-      "account_name": "Account #4",
       "total_tokens": 532946,
       "input_tokens": 509104,
       "output_tokens": 23842,
@@ -6685,10 +6825,20 @@
       "last_seen": 1791461917
     },
     {
+      "cid": "764c9711-aa3e-43e8-b372-f7dfbc8a5fe9",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 10794776,
+      "input_tokens": 7960876,
+      "output_tokens": 2833900,
+      "cached_tokens": 996716,
+      "cost_usd": 2.932,
+      "calls_count": 2157,
+      "first_seen": 1793093400,
+      "last_seen": 1793119463
+    },
+    {
       "cid": "82794bf0-98a5-4d00-8c05-693ffe13dce0",
       "model": "claude-sonnet-4-6",
-      "account_id": 5,
-      "account_name": "Account #5",
       "total_tokens": 295555,
       "input_tokens": 243775,
       "output_tokens": 51780,
@@ -6701,8 +6851,6 @@
     {
       "cid": "96b5d31f-a2c4-432a-9db4-d70de7073c76",
       "model": "claude-sonnet-4-6",
-      "account_id": 6,
-      "account_name": "Account #6",
       "total_tokens": 122965,
       "input_tokens": 104320,
       "output_tokens": 18645,
@@ -6714,23 +6862,43 @@
     },
     {
       "cid": "a1682580-3682-4d05-a2e1-f6567252ec97",
-      "model": "gemini-3.8-flash-medium",
-      "account_id": 7,
-      "account_name": "Account #7",
-      "total_tokens": 6046039,
-      "input_tokens": 5214019,
-      "output_tokens": 832020,
-      "cached_tokens": 373155,
-      "cost_usd": 0.867,
-      "calls_count": 631,
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 9803110,
+      "input_tokens": 8307701,
+      "output_tokens": 1495409,
+      "cached_tokens": 693298,
+      "cost_usd": 2.175,
+      "calls_count": 1135,
       "first_seen": 1792134555,
-      "last_seen": 1792397948
+      "last_seen": 1792744879
+    },
+    {
+      "cid": "aca08a65-c1bb-4505-ba2f-dd1dfb3ba0e2",
+      "model": "gemini-3.8-flash-medium",
+      "total_tokens": 1954835,
+      "input_tokens": 1711705,
+      "output_tokens": 243130,
+      "cached_tokens": 182930,
+      "cost_usd": 0.274,
+      "calls_count": 193,
+      "first_seen": 1792860770,
+      "last_seen": 1792915008
+    },
+    {
+      "cid": "add12c1d-8a8f-4fbd-aed1-5b9002b905b9",
+      "model": "gemini-3.8-flash-high",
+      "total_tokens": 7096573,
+      "input_tokens": 5956053,
+      "output_tokens": 1140520,
+      "cached_tokens": 458820,
+      "cost_usd": 1.597,
+      "calls_count": 866,
+      "first_seen": 1792682052,
+      "last_seen": 1792860658
     },
     {
       "cid": "d2bba668-8dd7-4364-8af6-c4fd3bbdd40d",
       "model": "claude-sonnet-4-6",
-      "account_id": 1,
-      "account_name": "Account #1",
       "total_tokens": 6654454,
       "input_tokens": 5849783,
       "output_tokens": 804671,
@@ -6743,8 +6911,6 @@
     {
       "cid": "d5e5c5df-75b6-431e-8a69-21c6f494b230",
       "model": "claude-sonnet-4-6",
-      "account_id": 2,
-      "account_name": "Account #2",
       "total_tokens": 605940,
       "input_tokens": 547951,
       "output_tokens": 57989,
@@ -6757,22 +6923,18 @@
     {
       "cid": "dbb69822-f033-48f6-9f81-807cbb6f29ba",
       "model": "gemini-3.8-flash-high",
-      "account_id": 3,
-      "account_name": "Account #3",
-      "total_tokens": 676874,
-      "input_tokens": 568048,
-      "output_tokens": 108826,
-      "cached_tokens": 89946,
-      "cost_usd": 0.154,
-      "calls_count": 83,
+      "total_tokens": 5487462,
+      "input_tokens": 4486650,
+      "output_tokens": 1000812,
+      "cached_tokens": 477832,
+      "cost_usd": 1.294,
+      "calls_count": 760,
       "first_seen": 1792586978,
-      "last_seen": 1792588738
+      "last_seen": 1793428758
     },
     {
       "cid": "dda86993-3896-4e80-8502-23399a202caf",
       "model": "gemini-3.1-pro-low",
-      "account_id": 4,
-      "account_name": "Account #4",
       "total_tokens": 906384,
       "input_tokens": 863894,
       "output_tokens": 42490,
@@ -6785,8 +6947,6 @@
     {
       "cid": "ef4887a4-eb39-4764-ba34-a46ade98c1ac",
       "model": "gemini-3.1-pro-low",
-      "account_id": 5,
-      "account_name": "Account #5",
       "total_tokens": 1820243,
       "input_tokens": 1699086,
       "output_tokens": 121157,

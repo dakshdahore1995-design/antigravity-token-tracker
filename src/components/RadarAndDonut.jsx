@@ -76,12 +76,19 @@ export default function RadarAndDonut({ modelsData, monthlyData, summary }) {
   // 3. Peak Burst (Max Day / Avg Day)
   // 4. Output Density (Output volume)
   // 5. Model Diversity (Number of models active)
+  const callVolVal = Math.min(1.0, Math.max(0.15, (summary.total_calls || 0) / 10000));
+  const contextVal = Math.min(1.0, Math.max(0.15, (summary.total_input_tokens || 0) / (grandTotal || 1)));
+  const avgDayTokens = grandTotal / Math.max(1, summary.active_days || 1);
+  const peakBurstVal = Math.min(1.0, Math.max(0.15, ((summary.max_day?.tokens || 0) / Math.max(1, avgDayTokens * 2.5))));
+  const genVal = Math.min(1.0, Math.max(0.15, ((summary.total_output_tokens || 0) / (grandTotal || 1)) * 3.5));
+  const diversityVal = Math.min(1.0, Math.max(0.15, modelEntries.length / 5));
+
   const axes = [
-    { label: 'Call Vol', value: 0.85, raw: `${summary.total_calls} calls` },
-    { label: 'Context', value: 0.92, raw: `${((summary.total_input_tokens / grandTotal) * 100).toFixed(0)}% In` },
-    { label: 'Peak Burst', value: 0.88, raw: `${((summary.max_day?.tokens / (grandTotal / (summary.active_days || 1)))).toFixed(1)}x avg` },
-    { label: 'Generation', value: 0.70, raw: `${(summary.total_output_tokens / 1_000_000).toFixed(1)}M Out` },
-    { label: 'Diversity', value: 0.80, raw: `${modelEntries.length} models` },
+    { label: 'Call Vol', value: parseFloat(callVolVal.toFixed(2)), raw: `${summary.total_calls?.toLocaleString()} calls` },
+    { label: 'Context', value: parseFloat(contextVal.toFixed(2)), raw: `${((summary.total_input_tokens / grandTotal) * 100).toFixed(0)}% In` },
+    { label: 'Peak Burst', value: parseFloat(peakBurstVal.toFixed(2)), raw: `${((summary.max_day?.tokens / avgDayTokens)).toFixed(1)}x avg` },
+    { label: 'Generation', value: parseFloat(genVal.toFixed(2)), raw: `${(summary.total_output_tokens / 1_000_000).toFixed(1)}M Out` },
+    { label: 'Diversity', value: parseFloat(diversityVal.toFixed(2)), raw: `${modelEntries.length} models` },
   ];
 
   const radarRadius = 75;

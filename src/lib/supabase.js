@@ -190,3 +190,37 @@ export async function deleteUserAccount(userId, accountId) {
     return { success: false, error: err.message };
   }
 }
+
+// Fetch the authentic live workspace telemetry from Supabase
+export async function fetchWorkspaceTelemetry() {
+  try {
+    const { data, error } = await supabase
+      .from('workspace_telemetry')
+      .select('*')
+      .eq('id', 'primary_workspace')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('fetchWorkspaceTelemetry warning:', error.message);
+      return null;
+    }
+
+    if (data && data.summary) {
+      return {
+        metadata: data.metadata || {},
+        summary: data.summary,
+        calendar_days: data.calendar_days || [],
+        models: data.models || {},
+        monthly: data.monthly || {},
+        hourly_distribution: data.hourly_distribution || {},
+        conversations: data.conversations || [],
+        updated_at: data.updated_at,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('fetchWorkspaceTelemetry exception:', err);
+    return null;
+  }
+}
+

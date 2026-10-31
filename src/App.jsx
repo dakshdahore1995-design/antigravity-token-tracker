@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import initialData from './data/initialData.json';
-import { supabase, fetchUserAccounts, saveUserAccount } from './lib/supabase';
+import { supabase, fetchUserAccounts, saveUserAccount, fetchWorkspaceTelemetry } from './lib/supabase';
 import Header from './components/Header';
 import StatsBanner from './components/StatsBanner';
 import Heatmap2D from './components/Heatmap2D';
@@ -69,6 +69,23 @@ export default function App() {
       localStorage.removeItem('antigravity_current_user');
     }
   }, [currentUser]);
+
+  // Load authentic live telemetry from Supabase Cloud on mount
+  useEffect(() => {
+    fetchWorkspaceTelemetry().then((remoteData) => {
+      if (remoteData && remoteData.summary) {
+        setData((prev) => ({
+          ...prev,
+          summary: remoteData.summary,
+          calendar_days: remoteData.calendar_days,
+          models: remoteData.models,
+          monthly: remoteData.monthly,
+          hourly_distribution: remoteData.hourly_distribution,
+          conversations: remoteData.conversations,
+        }));
+      }
+    });
+  }, []);
 
   // Sync Accounts with Supabase whenever currentUser changes or on mount
   useEffect(() => {
@@ -402,15 +419,26 @@ export default function App() {
   const handleTriggerSync = async () => {
     setIsSyncing(true);
     try {
-      const res = await fetch('/api/sync', { method: 'POST' });
-      if (res.ok) {
-        const updated = await res.json();
-        if (updated && updated.data) {
-          setData(updated.data);
-        }
+      const remoteData = await fetchWorkspaceTelemetry();
+      if (remoteData && remoteData.summary) {
+        setData((prev) => ({
+          ...prev,
+          summary: remoteData.summary,
+          calendar_days: remoteData.calendar_days,
+          models: remoteData.models,
+          monthly: remoteData.monthly,
+          hourly_distribution: remoteData.hourly_distribution,
+          conversations: remoteData.conversations,
+        }));
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#00ff88', '#00f0ff', '#4285F4'],
+        });
       }
     } catch (e) {
-      console.warn('Sync via netlify functions failed, fallback to local', e);
+      console.warn('Sync via Supabase failed', e);
     } finally {
       setIsSyncing(false);
     }
