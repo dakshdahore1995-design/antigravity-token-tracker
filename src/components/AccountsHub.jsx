@@ -55,51 +55,134 @@ export default function AccountsHub({
     setIsConnectModalOpen(true);
   };
 
-  // Connect via Google OAuth 2.0
-  const handleInitiateGoogleOAuth = async () => {
+  // Direct, Synchronous Google OAuth 2.0 Redirect (Zero Fetch Latency)
+  const handleInitiateGoogleOAuth = () => {
     setIsConnecting(true);
     try {
       const nextId = (accounts?.length || 0) + 1;
       const redirectOrigin = window.location.origin;
       const redirectUri = `${redirectOrigin}/auth/callback`;
+      const clientId = '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com';
 
-      const res = await fetch(
-        `/api/auth-url?intent=connect_account&account_id=${nextId}&account_name=${encodeURIComponent(
-          accountNickname
-        )}&origin=${encodeURIComponent(redirectOrigin)}&redirect_uri=${encodeURIComponent(
-          redirectUri
-        )}`
-      );
-      const data = await res.json();
+      const scopes = [
+        'openid',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ].join(' ');
 
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setIsConnecting(false);
-        setActiveDiagnostic({
-          title: 'Google OAuth URL Construction Failed',
-          service: 'Google Identity OAuth 2.0',
-          httpStatus: 500,
-          errorCode: 'URL_GEN_FAILED',
-          rawMessage: data.error || 'Failed to generate Google OAuth authorization link.',
-          diagnosis: 'The OAuth endpoint was unable to sign or construct the authorization redirect URL.',
-          fixSteps: [
-            'Verify server network connectivity.',
-            'Ensure Google Cloud OAuth Client ID is registered in environment configuration.',
-          ],
-        });
-      }
+      const stateObj = {
+        intent: 'connect_account',
+        account_id: nextId,
+        account_name: accountNickname.trim() || `Google Account #${nextId}`,
+        origin: redirectOrigin,
+        redirect_uri: redirectUri,
+        timestamp: Date.now(),
+      };
+
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(clientId)}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `response_type=code&` +
+        `scope=${encodeURIComponent(scopes)}&` +
+        `access_type=offline&` +
+        `prompt=select_account%20consent&` +
+        `state=${encodeURIComponent(JSON.stringify(stateObj))}`;
+
+      window.location.href = googleAuthUrl;
     } catch (err) {
       setIsConnecting(false);
       setActiveDiagnostic({
-        title: 'Network Communication Failure',
-        service: 'Google OAuth Gateway',
+        title: 'Google OAuth Initialization Failed',
+        service: 'Google Identity OAuth 2.0',
         httpStatus: 0,
-        errorCode: 'NETWORK_ERROR',
+        errorCode: 'INIT_ERROR',
         rawMessage: err.message,
-        diagnosis: 'Failed to contact the backend OAuth redirect service.',
-        fixSteps: ['Check your internet connection and try again.'],
+        diagnosis: 'Could not construct Google OAuth redirection parameters.',
+        fixSteps: ['Verify browser security settings and retry.'],
       });
+    }
+  };
+
+  // Helper to run live test against Gemini API (with direct client-side fallback if serverless proxy is unavailable)
+  const testGeminiApiKey = async (key) => {
+    // 1. Try serverless verification endpoint first
+    try {
+      const res = await fetch('/api/verify-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: key, accountName: accountNickname }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return await res.json();
+      }
+    } catch (e) {
+      // Continue to direct Google API fallback
+    }
+
+    // 2. Direct browser call to Google Generative Language API
+    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`;
+    const startTime = Date.now();
+    try {
+      const response = await fetch(googleUrl, { method: 'GET' });
+      const latencyMs = Date.now() - startTime;
+      const data = await response.json();
+
+      if (response.ok && data.models) {
+        const geminiModels = data.models
+          .filter(m => m.name && (m.name.includes('gemini') || m.name.includes('learnlm')))
+          .map(m => m.displayName || m.name.replace('models/', ''));
+
+        return {
+          success: true,
+          status: 'Verified & Active',
+          latency_ms: latencyMs,
+          models_count: data.models.length,
+          available_models: geminiModels.slice(0, 8),
+          provider: 'Google Gemini AI Studio / Cloud',
+        };
+      }
+
+      const googleErr = data.error || {};
+      const httpCode = response.status;
+      const rawMessage = googleErr.message || response.statusText || 'Unknown error from Google Cloud API';
+      const reason = googleErr.status || 'PERMISSION_DENIED';
+
+      let diagnosis = 'Google Cloud rejected this API key.';
+      let fixSteps = [
+        'Visit Google AI Studio: https://aistudio.google.com/app/apikey',
+        'Generate a new API key for your Google Account.',
+      ];
+
+      if (httpCode === 403) {
+        if (rawMessage.includes('unregistered callers') || rawMessage.includes('API key not valid')) {
+          diagnosis = 'Google rejected the request because this API key is either invalid, deleted, or restricted from calling the Generative Language API.';
+          fixSteps = [
+            'Visit Google AI Studio: https://aistudio.google.com/app/apikey',
+            'Generate a new API key for your Google Account.',
+            'Ensure "Generative Language API" is enabled in Google Cloud Console (console.cloud.google.com).',
+          ];
+        }
+      }
+
+      return {
+        success: false,
+        http_status: httpCode,
+        google_status: reason,
+        raw_error_message: rawMessage,
+        diagnosis,
+        fix_steps: fixSteps,
+        google_error_object: googleErr,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        http_status: 0,
+        google_status: 'NETWORK_ERROR',
+        raw_error_message: err.message,
+        diagnosis: 'Could not contact Google Cloud servers from the browser.',
+        fix_steps: ['Check your internet connection and verify ad-blockers do not block googleapis.com.'],
+      };
     }
   };
 
@@ -112,16 +195,7 @@ export default function AccountsHub({
     const keyToTest = apiKeyInput.trim();
 
     try {
-      const res = await fetch('/api/verify-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey: keyToTest,
-          accountName: accountNickname,
-        }),
-      });
-
-      const result = await res.json();
+      const result = await testGeminiApiKey(keyToTest);
       setIsConnecting(false);
 
       if (result.success) {

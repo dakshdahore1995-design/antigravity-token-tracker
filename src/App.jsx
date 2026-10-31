@@ -123,7 +123,14 @@ export default function App() {
           redirect_uri: parsedState.redirect_uri || `${window.location.origin}/auth/callback`,
         }),
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          const contentType = res.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) {
+            const rawText = await res.text();
+            throw new Error(`Server returned non-JSON response (HTTP ${res.status}): ${rawText.slice(0, 100)}`);
+          }
+          return res.json();
+        })
         .then((resp) => {
           if (resp.status === 'success' && resp.account) {
             if (intent === 'master_login') {

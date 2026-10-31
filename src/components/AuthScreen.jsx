@@ -22,37 +22,45 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
   const [errorMsg, setErrorMsg] = useState(initialError);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
-  // Real Google OAuth Redirect Flow
-  const handleGoogleAuth = async () => {
+  // Direct, Synchronous Google OAuth 2.0 Redirect (Zero Network Fetch Latency)
+  const handleGoogleAuth = () => {
     setIsLoadingGoogle(true);
     setErrorMsg(null);
     try {
       const redirectOrigin = window.location.origin;
       const redirectUri = `${redirectOrigin}/auth/callback`;
+      const clientId = '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com';
       
-      const res = await fetch(
-        `/api/auth-url?intent=master_login&origin=${encodeURIComponent(redirectOrigin)}&redirect_uri=${encodeURIComponent(redirectUri)}`
-      );
-      const data = await res.json();
+      const scopes = [
+        'openid',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ].join(' ');
 
-      if (data.url) {
-        // Redirect to Google OAuth Consent Screen
-        window.location.href = data.url;
-      } else {
-        setErrorMsg({
-          title: 'Google OAuth Initialization Failed',
-          code: 'AUTH_URL_GEN_FAILED',
-          message: data.error || 'Failed to construct Google OAuth authorization URL.',
-          diagnosis: 'The server could not produce a valid authorization URL for Google Identity.',
-        });
-        setIsLoadingGoogle(false);
-      }
+      const stateObj = {
+        intent: 'master_login',
+        origin: redirectOrigin,
+        redirect_uri: redirectUri,
+        timestamp: Date.now(),
+      };
+
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(clientId)}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `response_type=code&` +
+        `scope=${encodeURIComponent(scopes)}&` +
+        `access_type=offline&` +
+        `prompt=select_account%20consent&` +
+        `state=${encodeURIComponent(JSON.stringify(stateObj))}`;
+
+      // Immediately redirect browser to Google Accounts Consent Screen
+      window.location.href = googleAuthUrl;
     } catch (err) {
       setErrorMsg({
-        title: 'Network Communication Error',
-        code: 'NETWORK_ERROR',
+        title: 'Google OAuth Initialization Failed',
+        code: 'CLIENT_INIT_ERROR',
         message: err.message,
-        diagnosis: 'Could not reach the authentication endpoint. Please verify connection or server status.',
+        diagnosis: 'Could not construct Google OAuth redirection URL in browser.',
       });
       setIsLoadingGoogle(false);
     }
