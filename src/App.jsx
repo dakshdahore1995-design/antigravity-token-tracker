@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import initialData from './data/initialData.json';
+import { supabase, fetchUserAccounts, saveUserAccount } from './lib/supabase';
 import Header from './components/Header';
 import StatsBanner from './components/StatsBanner';
 import Heatmap2D from './components/Heatmap2D';
@@ -36,20 +37,14 @@ export default function App() {
     return currentUser?.name || localStorage.getItem('antigravity_user_name') || 'Daksh';
   });
 
-  // Base Data State
-  const [data, setData] = useState(initialData);
+  // Base Data State (starts empty, populated dynamically from Supabase)
+  const [data, setData] = useState(() => ({
+    ...initialData,
+    accounts: [],
+  }));
 
-  // Accounts List State (Managed per user, starts fresh with real connections)
-  const [accountsList, setAccountsList] = useState(() => {
-    const userKey = currentUser ? `antigravity_accounts_${currentUser.id}` : 'antigravity_cloud_accounts';
-    const saved = localStorage.getItem(userKey);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [];
-  });
+  // Accounts List State (Dynamic, unlimited accounts from Supabase)
+  const [accountsList, setAccountsList] = useState([]);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('all');
@@ -75,11 +70,63 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Sync Accounts with Supabase whenever currentUser changes or on mount
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setAccountsList([]);
+      setData((prev) => ({ ...prev, accounts: [] }));
+      return;
+    }
+
+    let isMounted = true;
+    fetchUserAccounts(currentUser.id).then((accounts) => {
+      if (isMounted) {
+        setAccountsList(accounts);
+        setData((prev) => ({
+          ...prev,
+          accounts: accounts,
+        }));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
+
+  // Listen to Supabase Auth State changes (multi-browser session sync)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const u = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          email: session.user.email,
+          email_confirmed: !!session.user.email_confirmed_at,
+          auth_provider: session.user.app_metadata?.provider || 'supabase',
+          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(session.user.email)}`,
+          created_at: session.user.created_at,
+        };
+        setCurrentUser(u);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setAccountsList([]);
+        setData((prev) => ({ ...prev, accounts: [] }));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   // Persist accounts list
   const handleAccountsChange = (updated) => {
     setAccountsList(updated);
-    const userKey = currentUser ? `antigravity_accounts_${currentUser.id}` : 'antigravity_cloud_accounts';
-    localStorage.setItem(userKey, JSON.stringify(updated));
+    if (currentUser?.id) {
+      const userKey = `antigravity_accounts_${currentUser.id}`;
+      localStorage.setItem(userKey, JSON.stringify(updated));
+    }
 
     // Also update data.accounts so child components stay synced
     setData((prev) => ({
@@ -183,6 +230,9 @@ export default function App() {
               const existingList = accountsList.filter((a) => a.id.toString() !== accountId.toString());
               const updated = [...existingList, newConnectedAccount];
               handleAccountsChange(updated);
+              if (currentUser?.id) {
+                saveUserAccount(currentUser.id, newConnectedAccount);
+              }
 
               setActiveTab('accounts');
               setOauthNotice({
@@ -367,9 +417,12 @@ export default function App() {
   };
 
   // Sign out handler
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Sign out of Antigravity Token Matrix?')) {
+      await supabase.auth.signOut();
       setCurrentUser(null);
+      setAccountsList([]);
+      localStorage.removeItem('antigravity_current_user');
     }
   };
 

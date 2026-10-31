@@ -15,18 +15,9 @@ export async function handler(event, context) {
     return { statusCode: 200, headers, body: '' };
   }
 
-  // Initialize with default 7 accounts if empty
+  // Initialize with empty array
   if (!cloudAccounts) {
-    cloudAccounts = Array.from({ length: 7 }, (_, i) => ({
-      id: i + 1,
-      name: `Account #${i + 1}`,
-      email: `account${i + 1}@gmail.com`,
-      quota_tokens: 10_000_000,
-      total_tokens: 0,
-      percent_used: 0,
-      status: 'Ready',
-      apiKeyConfigured: false,
-    }));
+    cloudAccounts = [];
   }
 
   if (event.httpMethod === 'GET') {

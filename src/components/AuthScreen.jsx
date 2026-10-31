@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Lock,
@@ -14,23 +14,68 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Globe
+  Globe,
+  Database,
+  Send,
+  RefreshCw
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function AuthScreen({ onLoginSuccess, initialError = null }) {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'signup' | 'magiclink'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState(initialError);
+  const [infoNotice, setInfoNotice] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
+  const [verificationSentEmail, setVerificationSentEmail] = useState('');
 
   // Redirect URI Configuration for Google Cloud Console Whitelist
   const isNetlifyOrigin = window.location.origin.includes('netlify.app');
   const [usePreauthorizedNetlify, setUsePreauthorizedNetlify] = useState(!isNetlifyOrigin);
   const [copiedUri, setCopiedUri] = useState('');
-  const [showConfigHelper, setShowConfigHelper] = useState(!isNetlifyOrigin);
+  const [showConfigHelper, setShowConfigHelper] = useState(false);
+
+  // Check for incoming Supabase session on mount (e.g. from email verification link)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (session?.user) {
+        const loggedUser = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email.split('@')[0],
+          email: session.user.email,
+          email_confirmed: !!session.user.email_confirmed_at,
+          auth_provider: session.user.app_metadata?.provider || 'supabase',
+          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(session.user.email)}`,
+          created_at: session.user.created_at,
+        };
+        onLoginSuccess(loggedUser);
+      }
+    });
+
+    // Listen for auth state changes (e.g., when email verification callback finishes)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const loggedUser = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email.split('@')[0],
+          email: session.user.email,
+          email_confirmed: !!session.user.email_confirmed_at,
+          auth_provider: session.user.app_metadata?.provider || 'supabase',
+          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(session.user.email)}`,
+          created_at: session.user.created_at,
+        };
+        onLoginSuccess(loggedUser);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [onLoginSuccess]);
 
   const getEffectiveRedirectUri = () => {
     if (usePreauthorizedNetlify) {
@@ -40,9 +85,12 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
   };
 
   // Direct, Synchronous Google OAuth 2.0 Redirect
-  const handleGoogleAuth = () => {
+  const handleGoogleAuth = async () => {
     setIsLoadingGoogle(true);
     setErrorMsg(null);
+    setInfoNotice(null);
+
+    // Try Supabase OAuth first if supported, fallback to direct Google OAuth URL
     try {
       const redirectOrigin = window.location.origin;
       const redirectUri = getEffectiveRedirectUri();
@@ -61,7 +109,8 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
         timestamp: Date.now(),
       };
 
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      const googleAuthUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `response_type=code&` +
@@ -83,22 +132,73 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
     }
   };
 
-  // Email / Password Handler
-  const handleEmailSubmit = (e) => {
+  // Supabase Real Email / Password Handler
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
+    setInfoNotice(null);
 
-    if (!email || !password) {
+    if (!email.trim()) {
       setErrorMsg({
         title: 'Validation Error',
-        code: 'MISSING_FIELDS',
-        message: 'Please provide both an email address and a password.',
+        code: 'MISSING_EMAIL',
+        message: 'Please provide a valid email address.',
+        diagnosis: 'Authentication requires a target email address.',
+      });
+      return;
+    }
+
+    // 1. Passwordless Magic Link Flow
+    if (authMode === 'magiclink') {
+      setIsSubmitting(true);
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: email.trim().toLowerCase(),
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        });
+
+        setIsSubmitting(false);
+
+        if (error) {
+          setErrorMsg({
+            title: 'Magic Link Failed',
+            code: error.code || 'OTP_FAILED',
+            message: error.message,
+            diagnosis: 'Supabase was unable to dispatch the authentication email.',
+          });
+        } else {
+          setVerificationSentEmail(email.trim());
+          setInfoNotice({
+            title: 'Instant Sign-In Link Sent!',
+            message: `A passwordless login link has been sent to ${email}. Check your inbox and click the link to authenticate immediately.`,
+          });
+        }
+      } catch (err) {
+        setIsSubmitting(false);
+        setErrorMsg({
+          title: 'Network Communication Error',
+          code: 'NETWORK_ERROR',
+          message: err.message,
+          diagnosis: 'Failed to contact Supabase Auth servers.',
+        });
+      }
+      return;
+    }
+
+    if (!password) {
+      setErrorMsg({
+        title: 'Validation Error',
+        code: 'MISSING_PASSWORD',
+        message: 'Please provide a password.',
         diagnosis: 'Authentication requires valid credentials.',
       });
       return;
     }
 
-    if (isSignUp) {
+    // 2. Sign Up Flow with Supabase
+    if (authMode === 'signup') {
       if (password.length < 6) {
         setErrorMsg({
           title: 'Weak Password',
@@ -118,57 +218,153 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
         return;
       }
 
-      // Check if user already exists
-      const existingUsers = JSON.parse(localStorage.getItem('antigravity_registered_users') || '[]');
-      if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-        setErrorMsg({
-          title: 'Account Already Exists',
-          code: 'USER_ALREADY_REGISTERED',
-          message: `An account with email "${email}" already exists.`,
-          diagnosis: 'Please switch to the Sign In tab to access your account.',
+      setIsSubmitting(true);
+
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+          options: {
+            data: {
+              name: name.trim() || email.split('@')[0],
+            },
+            emailRedirectTo: window.location.origin,
+          },
         });
-        return;
+
+        setIsSubmitting(false);
+
+        if (error) {
+          setErrorMsg({
+            title: 'Registration Error',
+            code: error.code || 'SIGNUP_FAILED',
+            message: error.message,
+            diagnosis: error.message.includes('already registered')
+              ? 'An account with this email already exists. Switch to Sign In tab.'
+              : error.message,
+          });
+          return;
+        }
+
+        // Check if email verification is required
+        if (data?.user && !data.session) {
+          setVerificationSentEmail(email.trim());
+          setInfoNotice({
+            title: 'Verification Email Dispatched',
+            message: `Supabase has sent a verification link to ${email}. Please verify your email from your browser to complete account activation.`,
+          });
+        } else if (data?.session?.user) {
+          // Auto confirmed or session established
+          const loggedUser = {
+            id: data.session.user.id,
+            name: name.trim() || email.split('@')[0],
+            email: data.session.user.email,
+            email_confirmed: true,
+            auth_provider: 'supabase_email',
+            avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email)}`,
+            created_at: new Date().toISOString(),
+          };
+          onLoginSuccess(loggedUser);
+        }
+      } catch (err) {
+        setIsSubmitting(false);
+        setErrorMsg({
+          title: 'Network Communication Error',
+          code: 'SIGNUP_EXCEPTION',
+          message: err.message,
+          diagnosis: 'Failed to contact Supabase Auth servers.',
+        });
       }
-
-      const newUser = {
-        id: `user_${Date.now()}`,
-        name: name.trim() || email.split('@')[0],
-        email: email.trim().toLowerCase(),
-        password: password,
-        avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email)}`,
-        created_at: new Date().toISOString(),
-        auth_provider: 'email',
-      };
-
-      existingUsers.push(newUser);
-      localStorage.setItem('antigravity_registered_users', JSON.stringify(existingUsers));
-      onLoginSuccess(newUser);
     } else {
-      // Sign In Flow
-      const existingUsers = JSON.parse(localStorage.getItem('antigravity_registered_users') || '[]');
-      const user = existingUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      // 3. Sign In Flow with Supabase
+      setIsSubmitting(true);
 
-      if (!user) {
-        setErrorMsg({
-          title: 'Account Not Found',
-          code: 'USER_NOT_FOUND',
-          message: `No account found for "${email}".`,
-          diagnosis: 'Check your email spelling or create a new account using the Sign Up tab.',
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
         });
-        return;
-      }
 
-      if (user.password !== password) {
+        setIsSubmitting(false);
+
+        if (error) {
+          if (error.message.toLowerCase().includes('email not confirmed')) {
+            setVerificationSentEmail(email.trim());
+            setErrorMsg({
+              title: 'Email Verification Required',
+              code: 'EMAIL_NOT_CONFIRMED',
+              message: `Your email (${email}) has not been verified yet.`,
+              diagnosis: 'Supabase requires email confirmation before signing in. Check your inbox or click Resend Verification below.',
+            });
+          } else {
+            setErrorMsg({
+              title: 'Authentication Failed',
+              code: error.code || 'INVALID_CREDENTIALS',
+              message: error.message,
+              diagnosis: 'Verify your email and password, or create an account if you have not registered yet.',
+            });
+          }
+          return;
+        }
+
+        if (data?.user) {
+          const loggedUser = {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+            email: data.user.email,
+            email_confirmed: !!data.user.email_confirmed_at,
+            auth_provider: 'supabase_email',
+            avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(data.user.email)}`,
+            created_at: data.user.created_at,
+          };
+          onLoginSuccess(loggedUser);
+        }
+      } catch (err) {
+        setIsSubmitting(false);
         setErrorMsg({
-          title: 'Invalid Credentials',
-          code: 'INVALID_PASSWORD',
-          message: 'The password entered is incorrect.',
-          diagnosis: 'Please verify your password and try again.',
+          title: 'Network Exception',
+          code: 'SIGNIN_EXCEPTION',
+          message: err.message,
+          diagnosis: 'Could not contact Supabase Cloud authentication endpoint.',
         });
-        return;
       }
+    }
+  };
 
-      onLoginSuccess(user);
+  // Helper to Resend Email Verification Link
+  const handleResendVerification = async () => {
+    if (!verificationSentEmail) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: verificationSentEmail,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      setIsSubmitting(false);
+      if (error) {
+        setErrorMsg({
+          title: 'Resend Failed',
+          code: error.code || 'RESEND_ERROR',
+          message: error.message,
+          diagnosis: 'Unable to resend verification email.',
+        });
+      } else {
+        setInfoNotice({
+          title: 'Verification Email Resent',
+          message: `A fresh verification link was dispatched to ${verificationSentEmail}.`,
+        });
+      }
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrorMsg({
+        title: 'Resend Error',
+        code: 'NETWORK_ERROR',
+        message: err.message,
+        diagnosis: 'Network error resending verification email.',
+      });
     }
   };
 
@@ -176,11 +372,12 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
   const handleGuestAccess = () => {
     const guestUser = {
       id: 'guest_daksh_dev',
-      name: 'Daksh',
+      name: 'Daksh (Developer Sandbox)',
       email: 'daksh.developer@gmail.com',
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Daksh',
       created_at: new Date().toISOString(),
       auth_provider: 'guest',
+      email_confirmed: true,
     };
     onLoginSuccess(guestUser);
   };
@@ -195,33 +392,111 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
           </div>
           <h1 className="auth-brand-title">Antigravity Token Matrix</h1>
           <p className="auth-brand-tagline">
-            Multi-Account Urban AI Telemetry & Token Intelligence
+            Industrial Multi-Account AI Quota & Telemetry Hub
           </p>
+
+          {/* Supabase Industrial Backend Connected Badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: 'rgba(0, 255, 136, 0.08)',
+              border: '1px solid rgba(0, 255, 136, 0.25)',
+              fontSize: '0.7rem',
+              color: '#00ff88',
+              marginTop: '8px',
+            }}
+          >
+            <Database size={12} />
+            <span>Supabase Cloud PostgreSQL Active (Persistent Cloud Sync)</span>
+          </div>
         </div>
 
-        {/* Tab Switcher: Sign In vs Sign Up */}
+        {/* Tab Switcher: Sign In vs Sign Up vs Magic Link */}
         <div className="auth-tab-switch">
           <button
             type="button"
-            className={`auth-tab-btn ${!isSignUp ? 'active' : ''}`}
+            className={`auth-tab-btn ${authMode === 'signin' ? 'active' : ''}`}
             onClick={() => {
-              setIsSignUp(false);
+              setAuthMode('signin');
               setErrorMsg(null);
+              setInfoNotice(null);
             }}
           >
             Sign In
           </button>
           <button
             type="button"
-            className={`auth-tab-btn ${isSignUp ? 'active' : ''}`}
+            className={`auth-tab-btn ${authMode === 'signup' ? 'active' : ''}`}
             onClick={() => {
-              setIsSignUp(true);
+              setAuthMode('signup');
               setErrorMsg(null);
+              setInfoNotice(null);
             }}
           >
             Create Account
           </button>
+          <button
+            type="button"
+            className={`auth-tab-btn ${authMode === 'magiclink' ? 'active' : ''}`}
+            onClick={() => {
+              setAuthMode('magiclink');
+              setErrorMsg(null);
+              setInfoNotice(null);
+            }}
+          >
+            Magic Link
+          </button>
         </div>
+
+        {/* Informational Banner */}
+        {infoNotice && (
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: '8px',
+              background: 'rgba(0, 240, 255, 0.1)',
+              border: '1px solid rgba(0, 240, 255, 0.3)',
+              marginBottom: '14px',
+              fontSize: '0.8rem',
+              color: '#fff',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#00f0ff', fontWeight: 600, marginBottom: '4px' }}>
+              <CheckCircle2 size={16} />
+              <span>{infoNotice.title}</span>
+            </div>
+            <p style={{ margin: 0, color: 'var(--text-secondary, #ccc)', lineHeight: 1.4 }}>
+              {infoNotice.message}
+            </p>
+            {verificationSentEmail && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isSubmitting}
+                style={{
+                  marginTop: '8px',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(0, 240, 255, 0.3)',
+                  color: '#00f0ff',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <RefreshCw size={12} className={isSubmitting ? 'spin-anim' : ''} />
+                <span>Resend Verification Email</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Specific Diagnostic Error Alert if Failed */}
         {errorMsg && (
@@ -236,6 +511,29 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
               <p className="auth-error-diag">
                 <strong>Specific Reason: </strong>{errorMsg.diagnosis}
               </p>
+            )}
+            {errorMsg.code === 'EMAIL_NOT_CONFIRMED' && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isSubmitting}
+                style={{
+                  marginTop: '8px',
+                  background: 'rgba(255, 77, 77, 0.15)',
+                  border: '1px solid rgba(255, 77, 77, 0.4)',
+                  color: '#ff6666',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <Send size={12} />
+                <span>Resend Verification Link</span>
+              </button>
             )}
           </div>
         )}
@@ -269,14 +567,14 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
             <span>
               {isLoadingGoogle
                 ? 'Contacting Google Accounts...'
-                : isSignUp
+                : authMode === 'signup'
                 ? 'Sign Up with Google OAuth'
                 : 'Sign In with Google OAuth'}
             </span>
           </button>
-          
+
           <span className="auth-oauth-caption">
-            Authenticates directly via Google Identity Services (OAuth 2.0)
+            Authenticates directly via Google Cloud Identity OAuth 2.0
           </span>
 
           {/* Google Redirect URI Whitelist Helper */}
@@ -381,12 +679,12 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
 
         {/* Divider */}
         <div className="auth-divider">
-          <span>OR CONTINUE WITH CREDENTIALS</span>
+          <span>OR INDUSTRIAL SUPABASE EMAIL AUTH</span>
         </div>
 
         {/* Email / Password Form */}
-        <form onSubmit={handleEmailSubmit} className="auth-form">
-          {isSignUp && (
+        <form onSubmit={handleAuthSubmit} className="auth-form">
+          {authMode === 'signup' && (
             <div className="auth-field">
               <label>Full Name</label>
               <div className="auth-input-container">
@@ -403,7 +701,7 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
           )}
 
           <div className="auth-field">
-            <label>Email Address</label>
+            <label>Email Address (For Multi-Browser Sync)</label>
             <div className="auth-input-container">
               <Mail size={16} className="auth-input-icon" />
               <input
@@ -417,22 +715,24 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
             </div>
           </div>
 
-          <div className="auth-field">
-            <label>Password</label>
-            <div className="auth-input-container">
-              <Lock size={16} className="auth-input-icon" />
-              <input
-                type="password"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="auth-text-input"
-              />
+          {authMode !== 'magiclink' && (
+            <div className="auth-field">
+              <label>Password</label>
+              <div className="auth-input-container">
+                <Lock size={16} className="auth-input-icon" />
+                <input
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="auth-text-input"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {isSignUp && (
+          {authMode === 'signup' && (
             <div className="auth-field">
               <label>Confirm Password</label>
               <div className="auth-input-container">
@@ -449,8 +749,20 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
             </div>
           )}
 
-          <button type="submit" className="auth-submit-btn btn-primary">
-            <span>{isSignUp ? 'Create Workspace Account' : 'Sign In to Workspace'}</span>
+          <button
+            type="submit"
+            className="auth-submit-btn btn-primary"
+            disabled={isSubmitting}
+          >
+            <span>
+              {isSubmitting
+                ? 'Communicating with Supabase Cloud...'
+                : authMode === 'signup'
+                ? 'Create Verified Workspace Account'
+                : authMode === 'magiclink'
+                ? 'Send Instant Passwordless Magic Link'
+                : 'Sign In to Workspace'}
+            </span>
             <ArrowRight size={16} />
           </button>
         </form>

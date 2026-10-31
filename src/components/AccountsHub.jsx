@@ -22,10 +22,12 @@ import {
   Radio,
   Sliders,
   Terminal,
-  Activity
+  Activity,
+  Database
 } from 'lucide-react';
 import ErrorDiagnosticModal from './ErrorDiagnosticModal';
 import confetti from 'canvas-confetti';
+import { saveUserAccount, deleteUserAccount } from '../lib/supabase';
 
 export default function AccountsHub({
   accounts,
@@ -231,10 +233,15 @@ export default function AccountsHub({
           errorDetails: null,
         };
 
+        // Persist to Supabase Cloud
+        if (currentUser?.id) {
+          saveUserAccount(currentUser.id, newAccount);
+        }
+
         const updated = [...(accounts || []), newAccount];
         onAccountsChange(updated);
         setIsConnectModalOpen(false);
-        setSuccessBanner(`Successfully linked and verified ${newAccount.name} against Google Cloud!`);
+        setSuccessBanner(`Successfully linked and verified ${newAccount.name} against Google Cloud (Synced to Supabase)!`);
         setTimeout(() => setSuccessBanner(''), 5000);
 
         confetti({
@@ -367,8 +374,11 @@ export default function AccountsHub({
   };
 
   // Remove Account
-  const handleRemoveAccount = (id) => {
+  const handleRemoveAccount = async (id) => {
     if (confirm('Are you sure you want to unlink and remove this account?')) {
+      if (currentUser?.id) {
+        await deleteUserAccount(currentUser.id, id);
+      }
       const updated = accounts.filter((a) => a.id !== id);
       onAccountsChange(updated);
       if (selectedAccountFilter === id.toString()) {
@@ -396,13 +406,30 @@ export default function AccountsHub({
             <p className="accounts-subtitle">
               Manage multi-account Google OAuth tokens, Gemini API keys, and pooled quota limits.
             </p>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '3px 8px',
+                borderRadius: '12px',
+                background: 'rgba(0, 255, 136, 0.08)',
+                border: '1px solid rgba(0, 255, 136, 0.25)',
+                fontSize: '0.7rem',
+                color: '#00ff88',
+                marginTop: '6px',
+              }}
+            >
+              <Database size={11} />
+              <span>Supabase Cloud PostgreSQL Active • Unlimited Slots</span>
+            </div>
           </div>
         </div>
 
         <div className="accounts-header-actions">
           <button className="btn-primary" onClick={handleOpenConnectModal}>
             <Plus size={16} />
-            <span>+ Connect New Account</span>
+            <span>+ Add Account (Unlimited Slots)</span>
           </button>
         </div>
       </div>
@@ -447,7 +474,7 @@ export default function AccountsHub({
       {/* Accounts List Section */}
       <div className="accounts-grid-section">
         <div className="accounts-grid-header">
-          <h3>Active Account Nodes ({accountList.length})</h3>
+          <h3>Active Account Nodes ({accountList.length}) • Unlimited Slots Available</h3>
           <div className="accounts-filter-pill-group">
             <button
               className={`account-filter-btn ${selectedAccountFilter === 'all' ? 'active' : ''}`}
@@ -618,6 +645,57 @@ export default function AccountsHub({
                 </div>
               );
             })}
+
+            {/* Unlimited Account Add Tile */}
+            <div
+              className="account-slot-card glass-panel add-card-slot"
+              onClick={handleOpenConnectModal}
+              style={{
+                borderStyle: 'dashed',
+                borderWidth: '1.5px',
+                borderColor: 'rgba(0, 240, 255, 0.3)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '220px',
+                textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.02)',
+                transition: 'all 0.2s ease',
+                padding: '24px 16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(0, 240, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#00f0ff',
+                  marginBottom: '10px',
+                }}
+              >
+                <Plus size={22} />
+              </div>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', color: '#fff' }}>
+                + Add Another Account
+              </h4>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted, #888)',
+                  maxWidth: '220px',
+                  lineHeight: 1.4,
+                }}
+              >
+                Unlimited Google OAuth and Gemini API accounts supported.
+              </p>
+            </div>
           </div>
         )}
       </div>

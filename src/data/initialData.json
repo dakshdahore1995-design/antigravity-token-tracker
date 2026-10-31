@@ -3,7 +3,7 @@
     "generated_at": "2026-10-21T18:49:04.413062",
     "target_user": "Daksh",
     "app_title": "Antigravity AI Token Matrix",
-    "total_accounts": 7
+    "total_accounts": 0
   },
   "summary": {
     "total_tokens": 26241208,
@@ -6586,99 +6586,7 @@
       "cost": 0.15430000000000005
     }
   },
-  "accounts": [
-    {
-      "id": 1,
-      "name": "Account #1",
-      "total_tokens": 6781042,
-      "input_tokens": 5964961,
-      "output_tokens": 816081,
-      "cached_tokens": 289490,
-      "cost_usd": 30.04,
-      "calls_count": 691,
-      "quota_tokens": 10000000,
-      "percent_used": 67.8,
-      "status": "Active"
-    },
-    {
-      "id": 2,
-      "name": "Account #2",
-      "total_tokens": 5321982,
-      "input_tokens": 4926181,
-      "output_tokens": 395801,
-      "cached_tokens": 105796,
-      "cost_usd": 2.96,
-      "calls_count": 349,
-      "quota_tokens": 10000000,
-      "percent_used": 53.2,
-      "status": "Active"
-    },
-    {
-      "id": 3,
-      "name": "Account #3",
-      "total_tokens": 4414052,
-      "input_tokens": 3889581,
-      "output_tokens": 524471,
-      "cached_tokens": 296541,
-      "cost_usd": 0.66,
-      "calls_count": 405,
-      "quota_tokens": 10000000,
-      "percent_used": 44.1,
-      "status": "Active"
-    },
-    {
-      "id": 4,
-      "name": "Account #4",
-      "total_tokens": 1439330,
-      "input_tokens": 1372998,
-      "output_tokens": 66332,
-      "cached_tokens": 35314,
-      "cost_usd": 2.06,
-      "calls_count": 64,
-      "quota_tokens": 10000000,
-      "percent_used": 14.4,
-      "status": "Active"
-    },
-    {
-      "id": 5,
-      "name": "Account #5",
-      "total_tokens": 2115798,
-      "input_tokens": 1942861,
-      "output_tokens": 172937,
-      "cached_tokens": 69369,
-      "cost_usd": 4.27,
-      "calls_count": 167,
-      "quota_tokens": 10000000,
-      "percent_used": 21.2,
-      "status": "Active"
-    },
-    {
-      "id": 6,
-      "name": "Account #6",
-      "total_tokens": 122965,
-      "input_tokens": 104320,
-      "output_tokens": 18645,
-      "cached_tokens": 5107,
-      "cost_usd": 0.6,
-      "calls_count": 18,
-      "quota_tokens": 10000000,
-      "percent_used": 1.2,
-      "status": "Active"
-    },
-    {
-      "id": 7,
-      "name": "Account #7",
-      "total_tokens": 6046039,
-      "input_tokens": 5214019,
-      "output_tokens": 832020,
-      "cached_tokens": 373155,
-      "cost_usd": 0.87,
-      "calls_count": 631,
-      "quota_tokens": 10000000,
-      "percent_used": 60.5,
-      "status": "Active"
-    }
-  ],
+  "accounts": [],
   "monthly": {
     "2026-09": {
       "total": 6536285,
