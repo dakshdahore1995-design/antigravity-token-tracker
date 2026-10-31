@@ -9,8 +9,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   KeyRound,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Check,
+  Globe
 } from 'lucide-react';
 
 export default function AuthScreen({ onLoginSuccess, initialError = null }) {
@@ -22,15 +26,28 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
   const [errorMsg, setErrorMsg] = useState(initialError);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
-  // Direct, Synchronous Google OAuth 2.0 Redirect (Zero Network Fetch Latency)
+  // Redirect URI Configuration for Google Cloud Console Whitelist
+  const isNetlifyOrigin = window.location.origin.includes('netlify.app');
+  const [usePreauthorizedNetlify, setUsePreauthorizedNetlify] = useState(!isNetlifyOrigin);
+  const [copiedUri, setCopiedUri] = useState('');
+  const [showConfigHelper, setShowConfigHelper] = useState(!isNetlifyOrigin);
+
+  const getEffectiveRedirectUri = () => {
+    if (usePreauthorizedNetlify) {
+      return 'https://antigravity-token-tracker.netlify.app/auth/callback';
+    }
+    return `${window.location.origin}/auth/callback`;
+  };
+
+  // Direct, Synchronous Google OAuth 2.0 Redirect
   const handleGoogleAuth = () => {
     setIsLoadingGoogle(true);
     setErrorMsg(null);
     try {
       const redirectOrigin = window.location.origin;
-      const redirectUri = `${redirectOrigin}/auth/callback`;
+      const redirectUri = getEffectiveRedirectUri();
       const clientId = '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com';
-      
+
       const scopes = [
         'openid',
         'https://www.googleapis.com/auth/userinfo.email',
@@ -53,7 +70,7 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
         `prompt=select_account%20consent&` +
         `state=${encodeURIComponent(JSON.stringify(stateObj))}`;
 
-      // Immediately redirect browser to Google Accounts Consent Screen
+      // Redirect browser to Google Accounts Consent Screen
       window.location.href = googleAuthUrl;
     } catch (err) {
       setErrorMsg({
@@ -117,7 +134,7 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
         id: `user_${Date.now()}`,
         name: name.trim() || email.split('@')[0],
         email: email.trim().toLowerCase(),
-        password: password, // In client demo context
+        password: password,
         avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(email)}`,
         created_at: new Date().toISOString(),
         auth_provider: 'email',
@@ -257,9 +274,109 @@ export default function AuthScreen({ onLoginSuccess, initialError = null }) {
                 : 'Sign In with Google OAuth'}
             </span>
           </button>
+          
           <span className="auth-oauth-caption">
             Authenticates directly via Google Identity Services (OAuth 2.0)
           </span>
+
+          {/* Google Redirect URI Whitelist Helper */}
+          <div
+            style={{
+              marginTop: '8px',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              background: 'rgba(0, 240, 255, 0.05)',
+              border: '1px solid rgba(0, 240, 255, 0.2)',
+              fontSize: '0.75rem',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '6px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#00f0ff', fontWeight: 600 }}>
+                <Globe size={13} />
+                <span>Google OAuth Whitelist Route:</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfigHelper(!showConfigHelper)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted, #888)',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                }}
+              >
+                {showConfigHelper ? 'Hide Config' : 'Show Details'}
+              </button>
+            </div>
+
+            <div style={{ color: 'var(--text-secondary, #ccc)', lineHeight: 1.4, marginBottom: '6px' }}>
+              Redirect URI: <code style={{ color: '#00ff88', wordBreak: 'break-all' }}>{getEffectiveRedirectUri()}</code>
+            </div>
+
+            {showConfigHelper && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#ffb84d' }}>
+                  <input
+                    type="checkbox"
+                    checked={usePreauthorizedNetlify}
+                    onChange={(e) => setUsePreauthorizedNetlify(e.target.checked)}
+                  />
+                  <span>Use Pre-Authorized Netlify Callback (Bypasses redirect_uri_mismatch)</span>
+                </label>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/auth/callback`);
+                      setCopiedUri(`${window.location.origin}/auth/callback`);
+                      setTimeout(() => setCopiedUri(''), 3000);
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      color: '#fff',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {copiedUri ? <Check size={11} className="text-neon" /> : <Copy size={11} />}
+                    <span>{copiedUri ? 'Copied URI' : 'Copy Current URI'}</span>
+                  </button>
+
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#4285F4',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    <span>Google Cloud Console</span>
+                    <ExternalLink size={10} />
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Divider */}

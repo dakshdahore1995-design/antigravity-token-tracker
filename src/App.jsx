@@ -106,6 +106,12 @@ export default function App() {
       const accountId = parsedState.account_id || '1';
       const accountName = parsedState.account_name || `Google Account #${accountId}`;
 
+      // If landed on pre-authorized Netlify callback from another origin (e.g. pages.dev):
+      if (parsedState.origin && parsedState.origin !== window.location.origin && !window.location.origin.includes('localhost')) {
+        window.location.href = `${parsedState.origin}/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateStr)}`;
+        return;
+      }
+
       setOauthNotice({
         type: 'loading',
         message: intent === 'master_login'

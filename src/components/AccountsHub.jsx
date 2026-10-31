@@ -46,6 +46,18 @@ export default function AccountsHub({
   const [isConnecting, setIsConnecting] = useState(false);
   const [successBanner, setSuccessBanner] = useState('');
 
+  // Whitelist-aware redirect URI resolution
+  const isNetlifyOrigin = window.location.origin.includes('netlify.app');
+  const [usePreauthorizedNetlify, setUsePreauthorizedNetlify] = useState(!isNetlifyOrigin);
+  const [copiedUri, setCopiedUri] = useState('');
+
+  const getEffectiveRedirectUri = () => {
+    if (usePreauthorizedNetlify) {
+      return 'https://antigravity-token-tracker.netlify.app/auth/callback';
+    }
+    return `${window.location.origin}/auth/callback`;
+  };
+
   // Handle opening the Connect Account modal
   const handleOpenConnectModal = () => {
     const nextNum = (accounts?.length || 0) + 1;
@@ -61,7 +73,7 @@ export default function AccountsHub({
     try {
       const nextId = (accounts?.length || 0) + 1;
       const redirectOrigin = window.location.origin;
-      const redirectUri = `${redirectOrigin}/auth/callback`;
+      const redirectUri = getEffectiveRedirectUri();
       const clientId = '719271873086-kpujid5noaftp00cc3lgf50fns212g3m.apps.googleusercontent.com';
 
       const scopes = [
@@ -711,6 +723,34 @@ export default function AccountsHub({
                     <span className="oauth-note">
                       Client ID: <code>719271873086-kpujid5noaftp00cc3lgf50fns212g3m...</code>
                     </span>
+
+                    {/* Redirect URI Whitelist Box */}
+                    <div
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(0, 240, 255, 0.05)',
+                        border: '1px solid rgba(0, 240, 255, 0.2)',
+                        fontSize: '0.75rem',
+                        textAlign: 'left',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                      }}
+                    >
+                      <div style={{ color: 'var(--text-secondary, #ccc)', lineHeight: 1.4 }}>
+                        Active Callback URI: <code style={{ color: '#00ff88', wordBreak: 'break-all' }}>{getEffectiveRedirectUri()}</code>
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#ffb84d' }}>
+                        <input
+                          type="checkbox"
+                          checked={usePreauthorizedNetlify}
+                          onChange={(e) => setUsePreauthorizedNetlify(e.target.checked)}
+                        />
+                        <span>Use Pre-Authorized Netlify Callback (Bypasses redirect_uri_mismatch)</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
