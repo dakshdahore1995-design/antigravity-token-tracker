@@ -20,17 +20,23 @@ import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import './App.css';
 
 export default function App() {
-  // Master User Authentication State
+  // Master User Authentication State (Default to Daksh's workspace)
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('antigravity_current_user');
     if (saved) {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        return null;
+        // fallback
       }
     }
-    return null;
+    return {
+      id: 'daksh_primary_workspace',
+      email: 'dakshdahore1995@gmail.com',
+      name: 'Daksh',
+      avatar: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
+      provider: 'Local Engine & Supabase Telemetry',
+    };
   });
 
   const [userName, setUserName] = useState(() => {
